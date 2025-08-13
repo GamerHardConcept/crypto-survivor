@@ -4513,7 +4513,7 @@
             }
 
             console.log('Tentative de connexion au serveur Socket.IO...');
-            const socket = io("http://localhost:3000");
+            const socket = io("https://crypto-survivor.onrender.com");
 
             socket.on('connect', () => {
                 console.log('SUCCÈS : Connecté au serveur Socket.IO avec l\'ID :', socket.id);
