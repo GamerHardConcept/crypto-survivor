@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/Code Valie v30 grosse mise à jour v1.html" }
+  ]
+}

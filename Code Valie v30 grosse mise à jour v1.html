@@ -969,6 +969,7 @@
     <div id="main-menu-screen" class="screen">
         <div class="screen-content">
             <h1>Crypto Survivor</h1>
+            <div id="player-greeting" style="margin-top: 10px; font-size: 1.2rem; color: var(--primary-color);"></div>
             <div class="menu-buttons">
                 <button id="start-game-button" class="action-button">Survivor Mode</button>
                 <button id="multiplayer-button" class="action-button">Multijoueur</button>
@@ -1049,10 +1050,7 @@
     <div id="multiplayer-lobby-screen" class="screen">
         <div class="screen-content">
             <h2>Multijoueur</h2>
-            <div class="form-group">
-                <label for="player-name-input">Pseudo</label>
-                <input type="text" id="player-name-input" placeholder="Votre pseudo..." maxlength="12">
-            </div>
+            <p>Connecté en tant que : <strong id="lobby-player-name"></strong></p>
             <div class="form-group">
                 <label for="game-id-input">ID de la partie</label>
                 <input type="text" id="game-id-input" placeholder="Entrez un ID pour rejoindre...">
@@ -1068,10 +1066,9 @@
         <div class="screen-content">
             <h2>Salon d'attente</h2>
             <p id="waiting-room-info">ID de la partie : <span id="game-id-display"></span></p>
-            <h3>Joueurs (1/4)</h3>
+            <h3>Joueurs (<span id="player-count">1</span>/<span id="max-players">4</span>)</h3>
             <ul id="player-list">
-                <!-- Joueurs simulés -->
-                <li>Votre Pseudo (Hôte)</li>
+                <!-- La liste des joueurs sera remplie par JavaScript -->
             </ul>
             <div class="menu-buttons">
                 <button id="start-vs-ai-button" class="action-button">Jouer contre l'IA</button>
@@ -1442,7 +1439,8 @@
             const TOWER_WAVE_INTERVAL = 8000; // intervalle entre vagues (ms)
 
             // --- ÉTAT DU JEU ---
-            let gameState = 'mainMenu';
+            let gameState = 'login';
+            let currentPlayer = null;
             let gameMode = 'survivor'; // 'survivor' ou 'armyAttack'
             let players = []; // Gère tous les joueurs (humain + bots)
             let animationFrameId = null;
@@ -1486,6 +1484,9 @@
                     multiplayerLobby: document.getElementById('multiplayer-lobby-screen'),
                     waitingRoom: document.getElementById('waiting-room-screen'),
                     multiplayerMode: document.getElementById('multiplayer-mode-screen'),
+                },
+                inputs: {
+                    gameId: document.getElementById('game-id-input'),
                 },
                 gameHud: document.getElementById('game-hud'),
                 armyPanel: document.getElementById('army-purchase-panel'),
@@ -2976,6 +2977,10 @@
 
                 dom.buttons.nextFromMapSelect.addEventListener('click', () => {
                     if (selectedMap) {
+                        const lobbyPlayerName = document.getElementById('lobby-player-name');
+                        if (lobbyPlayerName && currentPlayer) {
+                            lobbyPlayerName.textContent = currentPlayer.username;
+                        }
                         showScreen('multiplayerLobby');
                     }
                 });
@@ -2991,9 +2996,28 @@
 
 
                 dom.buttons.createGame.addEventListener('click', () => {
-                    const gameId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                    dom.displays.gameIdDisplay.textContent = gameId;
-                    showScreen('waitingRoom');
+                    socket.emit('createGame', { 
+                        playerName: currentPlayer.username,
+                        map: selectedMap
+                    });
+                });
+
+                dom.buttons.joinGame.addEventListener('click', () => {
+                    const gameId = dom.inputs.gameId.value.toUpperCase();
+                    socket.emit('joinGame', { 
+                        playerName: currentPlayer.username, 
+                        gameId 
+                    });
+                });
+
+                const startMultiplayerGameButton = document.getElementById('start-multiplayer-game-button');
+                startMultiplayerGameButton.addEventListener('click', () => {
+                    const gameId = dom.displays.gameIdDisplay.textContent;
+                    socket.emit('startGame', { gameId });
+                });
+
+                dom.inputs.gameId.addEventListener('input', () => {
+                    dom.buttons.joinGame.disabled = dom.inputs.gameId.value.length === 0;
                 });
                 
                 dom.buttons.startVsAi.addEventListener('click', () => {
@@ -3106,6 +3130,36 @@
                 canvas.addEventListener('touchend', (e) => inputManager.joystick.end(e));
                 canvas.addEventListener('touchcancel', (e) => inputManager.joystick.end(e));
                 canvas.addEventListener('click', handleSpectatorClick);
+            }
+
+            function updatePlayerList(players, map) {
+                const playerCount = document.getElementById('player-count');
+                const maxPlayers = document.getElementById('max-players');
+                const playerList = document.getElementById('player-list');
+                
+                const mapMaxPlayers = mapData[map]?.maxPlayers || 4;
+
+                playerCount.textContent = players.length;
+                maxPlayers.textContent = mapMaxPlayers;
+                playerList.innerHTML = '';
+                players.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = player.name;
+                    if (player.isHost) {
+                        li.textContent += ' (Hôte)';
+                    }
+                    playerList.appendChild(li);
+                });
+
+                // Enable start button for host if enough players
+                const startButton = document.getElementById('start-multiplayer-game-button');
+                const amIHost = players.find(p => p.name === currentPlayer.username)?.isHost;
+                
+                if (amIHost && players.length >= 2) { 
+                    startButton.disabled = false;
+                } else {
+                    startButton.disabled = true;
+                }
             }
 
             function updateZoom() {
@@ -4566,6 +4620,26 @@
                 onLoginSuccess(data);
             });
 
+            socket.on('gameCreated', ({ gameId, players, map }) => {
+                dom.displays.gameIdDisplay.textContent = gameId;
+                updatePlayerList(players, map);
+                showScreen('waitingRoom');
+            });
+
+            socket.on('updatePlayerList', ({ players, map }) => {
+                updatePlayerList(players, map);
+            });
+
+            socket.on('gameStarted', () => {
+                // Le serveur a démarré la partie, on peut lancer le jeu localement
+                gameMode = 'multiplayer';
+                startGame(selectedMap);
+            });
+
+            socket.on('joinError', (message) => {
+                alert(message); // Simple alert for now
+            });
+
             socket.on('login-error', (message) => {
                 loginError.style.color = '#e74c3c';
                 loginError.textContent = message;
@@ -4573,10 +4647,18 @@
             });
 
             function onLoginSuccess(playerData) {
+                currentPlayer = playerData; // Stocker les données du joueur
                 loginScreen.classList.remove('active');
                 mainMenuScreen.classList.add('active');
+
+                // Affiche le message de bienvenue
+                const playerGreeting = document.getElementById('player-greeting');
+                if (playerGreeting) {
+                    playerGreeting.textContent = `Bienvenue, ${currentPlayer.username} !`;
+                }
+
                 // Lancement du jeu après connexion
-                init(playerData); // Passer les données du joueur à l'initialisation
+                init(); 
             }
 
         });
