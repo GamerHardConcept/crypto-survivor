@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 // Stockage en mémoire pour les utilisateurs
 const users = [];
 const connectedUsers = []; // Garde la trace des utilisateurs connectés
+const games = {}; // Stocke les parties actives
 const saltRounds = 10;
 
 // Servez les fichiers statiques (images, css, etc.)
@@ -75,6 +76,27 @@ io.on('connection', (socket) => {
       console.error("Erreur lors de la comparaison du mot de passe:", error);
       socket.emit('login-error', 'Une erreur est survenue sur le serveur.');
     }
+  });
+
+  socket.on('createGame', ({ username, map }) => {
+    const gameId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const player = { name: username, id: socket.id, isHost: true };
+
+    games[gameId] = {
+      id: gameId,
+      players: [player],
+      map: map,
+      hostId: socket.id
+    };
+
+    socket.join(gameId);
+    console.log(`Partie ${gameId} créée par ${username} sur la carte ${map}`);
+
+    io.to(gameId).emit('gameCreated', { 
+      gameId: gameId, 
+      players: games[gameId].players, 
+      map: games[gameId].map 
+    });
   });
 
   socket.on('disconnect', () => {
