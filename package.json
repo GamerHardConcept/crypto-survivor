@@ -1,0 +1,14 @@
+{
+  "name": "crypto-survivor-server",
+  "version": "1.0.0",
+  "description": "Server for Crypto Survivor: To The Moon",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "4.17.1",
+    "socket.io": "^4.7.5"
+  }
+}
