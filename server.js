@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 3000;
 
 // Stockage en mémoire pour les utilisateurs
 const users = [];
+const connectedUsers = []; // Garde la trace des utilisateurs connectés
 const saltRounds = 10;
 
 // Servez les fichiers statiques (images, css, etc.)
@@ -56,10 +57,16 @@ io.on('connection', (socket) => {
       return socket.emit('login-error', 'Pseudo ou mot de passe incorrect.');
     }
     try {
+      // Vérifier si l'utilisateur est déjà connecté
+      if (connectedUsers.find(u => u.username === username)) {
+        return socket.emit('login-error', 'Ce pseudo est déjà connecté.');
+      }
+
       const match = await bcrypt.compare(password, user.password);
       if (match) {
-        user.id = socket.id; // Mettre à jour le socket ID
-        console.log('Utilisateur connecté:', username);
+        // Ajouter l'utilisateur à la liste des connectés
+        connectedUsers.push({ id: socket.id, username });
+        console.log('Utilisateur connecté:', username, 'avec ID:', socket.id);
         socket.emit('login-success', { username });
       } else {
         socket.emit('login-error', 'Pseudo ou mot de passe incorrect.');
@@ -71,7 +78,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Un utilisateur s\'est déconnecté:', socket.id);
+    const index = connectedUsers.findIndex(user => user.id === socket.id);
+    if (index !== -1) {
+      const disconnectedUser = connectedUsers.splice(index, 1);
+      console.log('Utilisateur déconnecté:', disconnectedUser[0].username);
+    } else {
+      console.log('Un utilisateur non identifié s\'est déconnecté:', socket.id);
+    }
   });
 });
 
