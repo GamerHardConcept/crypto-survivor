@@ -1930,7 +1930,7 @@
                     if (gameMode === 'armyAttack') {
                         this.skillPoints = (this.skillPoints || 0) + 1;
                         if (this.playerId === 1) {
-                            updateMultiplayerUpgradeUI();
+                            updateAllUI();
                             createFloatingText('+1 Point!', this.x, this.y, 'gold');
                         }
                         return;
