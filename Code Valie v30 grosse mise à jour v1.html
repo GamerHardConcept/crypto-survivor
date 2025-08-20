@@ -3006,8 +3006,8 @@
                     await audioManager.initialize(); // Initialise l'audio au premier clic
                     audioManager.playMusic('menu');
                     gameState = 'characterSelection';
-                    setupCharacterSelection(); // Mettre à jour les persos débloqués
                     showScreen('characterSelection');
+                    setupCharacterSelection(); // Appelé APRÈS l'affichage de l'écran
                 });
                 
                 dom.buttons.multiplayer.addEventListener('click', () => {
@@ -3910,22 +3910,25 @@
             }
 
             function updateCharacterSelectionUI() {
-                const charSelectContainer = dom.screens.characterSelection.querySelector('.char-grid');
-                if (!charSelectContainer) return;
+                const charGrid = dom.screens.characterSelection.querySelector('.char-grid');
+                if (!charGrid) return;
 
-                charSelectContainer.querySelectorAll('.char-select-btn').forEach(btn => {
+                charGrid.style.display = 'grid'; // Assurer que la grille est visible
+
+                charGrid.querySelectorAll('.char-select-btn').forEach(btn => {
                     const charType = btn.dataset.char;
                     const isUnlocked = unlockedCharacters.includes(charType);
                     const costEl = btn.querySelector('.char-cost');
 
                     if (isUnlocked) {
                         btn.classList.remove('locked');
-                        if(costEl) costEl.style.display = 'none';
+                        if (costEl) costEl.style.display = 'none';
                     } else {
                         btn.classList.add('locked');
-                        if(costEl) {
+                        if (costEl) {
+                            const cost = characterData[charType].cost;
+                            costEl.innerHTML = `&lt;span class="wallet-icon"&gt;&lt;/span&gt;${cost}`;
                             costEl.style.display = 'block';
-                            costEl.innerHTML = `<span class="wallet-icon"></span>${characterData[charType].cost}`;
                         }
                     }
                 });
