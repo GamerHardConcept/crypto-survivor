@@ -1805,6 +1805,7 @@
                     // État
                     this.specialCooldown = 0;
                     this.isInvincible = false;
+                    this.isBonusLevelUp = false;
                     if (this.isBonusLevelUp && this.level > 1) this.isBonusLevelUp = false; 
                     this.lastBossSpawnLevel = 0;
                     
@@ -1934,7 +1935,6 @@
                             createFloatingText('+1 Point!', this.x, this.y, 'gold');
                         }
                     } else {
-                        spawnBonusUpgrade();
                         gameState = 'levelUp';
                         this.upgradesToPick = 1; 
                         showLevelUpOptions();
@@ -3311,8 +3311,6 @@
                 dom.armyPanel.classList.add('hidden');
                 dom.upgradePanel.classList.add('hidden');
                 
-                updateAllUI();
-                
                 gameState = 'running';
                 lastTime = performance.now();
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -3392,6 +3390,7 @@
                     humanPlayer.x = WORLD_WIDTH / 2;
                     humanPlayer.y = WORLD_HEIGHT / 2;
                     humanPlayer.addWeapon(weaponList.buy.init(humanPlayer));
+                    updateAllUI(); // Mettre à jour l'UI après la création du joueur et de son arme
                 } else if (gameMode === 'armyAttack') {
                     // Reset multiplayer upgrades for the new game
                     Object.keys(multiplayerUpgrades).forEach(key => {
@@ -3439,9 +3438,6 @@
                 armyAttackTimers = { wave: 0, waveCount: 0 };
                 
                 activeMiniBoss = null;
-                if (gameMode === 'survivor') {
-                    spawnBonusUpgrade();
-                }
             }
 
                         function gameLoop(timestamp) {
