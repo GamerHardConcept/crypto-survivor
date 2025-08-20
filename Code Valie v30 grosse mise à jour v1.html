@@ -138,29 +138,38 @@
         }
 
         /* --- Sélection du Personnage --- */
-        .character-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .char-button {
-            background-color: transparent;
+        .character-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .char-select-btn {
+            background-color: var(--bg-color);
             border: 2px solid var(--font-color);
             color: var(--font-color);
-            padding: 10px;
+            padding: 15px;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
-            width: 95px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .char-button.locked { border-color: #555; color: #555; cursor: not-allowed; }
-        .char-button:not(.locked):hover { border-color: var(--primary-color); background-color: rgba(0, 245, 212, 0.1); }
-        .char-icon { font-family: 'Roboto Mono', monospace; font-size: 1.8rem; font-weight: bold; display: inline-block; }
-        .mvx-logo-select {
-            transform: rotate(90deg);
+        .char-select-btn:not(.locked):hover { 
+            border-color: var(--primary-color); 
+            background-color: rgba(0, 245, 212, 0.1); 
+            transform: translateY(-5px);
         }
-        .char-button strong { font-size: 0.8rem; }
-        .char-button small { font-size: 0.6rem; opacity: 0.8; }
+        .char-select-btn.locked { 
+            border-color: var(--disabled-color); 
+            color: var(--disabled-color); 
+            cursor: not-allowed; 
+        }
+        .char-icon { font-family: 'Roboto Mono', monospace; font-size: 2.5rem; margin-bottom: 10px; }
+        .char-name { font-weight: bold; font-size: 1.1rem; color: var(--primary-color); margin-bottom: 5px; }
+        .char-desc { font-size: 0.8rem; margin-bottom: 10px; min-height: 40px;}
+        .char-cost { font-family: 'Roboto Mono', monospace; font-size: 1rem; color: var(--money-color); }
+        .wallet-icon { display: inline-block; width: 1em; height: 1em; background: url('data:image/svg+xml,...'); /* Placeholder */ vertical-align: middle; margin-right: 5px; }
+        .lock-icon { position: absolute; top: 10px; right: 10px; font-size: 1.5rem; opacity: 0.7; }
 
         /* --- Sélection de la Carte --- */
         .map-choices {
@@ -1623,7 +1632,7 @@
                 },
                 panels: {
                     armyPanel: document.getElementById('army-purchase-panel'),
-                    upgradePanel: document.getElementById('multiplayer-upgrade-panel'),
+                    upgradePanel: document.getElementById('upgrade-panel'),
                 },
                 gameHud: document.getElementById('game-hud'),
                 joystick: {
@@ -1752,7 +1761,7 @@
                     super(0, 0, 15); // La position sera définie dans resetGameState
                     this.playerId = playerId;
                     this.charType = charType;
-                    const charData = characterData[this.charType];
+                    const charData = CHARACTERS[this.charType];
 
                     // Application des bonus permanents
                     const permBonuses = getPermanentBonuses();
@@ -1945,7 +1954,7 @@
                 useSpecial() {
                     if (this.specialCooldown <= 0 && players[0]) {
                         this.specialCooldown = this.specialMaxCooldown * this.specialCooldownMultiplier;
-                        characterData[this.charType].special(this);
+                        CHARACTERS[this.charType].special(this);
                     }
                 }
             }
@@ -2910,6 +2919,78 @@
                 }
             }
 
+            const CHARACTERS = {
+                MVX: {
+                    name: "MultiversX",
+                    icon: "assets/mvx.png",
+                    description: "Le pionnier du métavers.",
+                    cost: 0,
+                    symbol: '▲',
+                    colorVar: '--mvx-color',
+                    cooldown: 30000,
+                    special: (player) => {
+                        audioManager.play('special');
+                        const projectileCount = 16;
+                        for (let i = 0; i < projectileCount; i++) {
+                            const angle = (Math.PI * 2 / projectileCount) * i;
+                            entities.projectiles.push(new Projectile(player.x, player.y, 5, { angle, speed: 6, damage: 50 * player.specialDamageMultiplier, lifespan: 1200, pierce: 2, color: player.color }));
+                        }
+                    }
+                },
+                AVAX: {
+                    name: "Avalanche",
+                    icon: "assets/avax.png",
+                    description: "Rapide et dévastateur.",
+                    cost: 1000,
+                    symbol: '❄️',
+                    colorVar: '--avax-color',
+                    cooldown: 45000,
+                    special: (player) => {
+                        audioManager.play('special');
+                        entities.particles.push(new Particle(player.x, player.y, 'rgba(0, 255, 255, 0.5)', 2000, 500));
+                        entities.enemies.forEach(e => {
+                            e.takeDamage(100 * player.specialDamageMultiplier);
+                            if(e.freeze) e.freeze(3000);
+                        });
+                    }
+                },
+                SOL: {
+                    name: "Solana",
+                    icon: "assets/sol.png",
+                    description: "Une vitesse fulgurante.",
+                    cost: 2500,
+                    symbol: '⚡',
+                    colorVar: '--sol-color',
+                    cooldown: 60000,
+                    special: (player) => {
+                        audioManager.play('special');
+                        player.isInvincible = true;
+                        player.speedMultiplier = 3.0;
+                        setTimeout(() => { player.isInvincible = false; player.speedMultiplier = 1.0; }, 5000);
+                    }
+                },
+                ETH: {
+                    name: "Ethereum",
+                    icon: "assets/eth.png",
+                    description: "Puissance et résilience.",
+                    cost: 5000,
+                    symbol: '♦',
+                    colorVar: '--eth-color',
+                    cooldown: 90000,
+                    special: (player) => {
+                        audioManager.play('explosion');
+                        const explosionRadius = 400 * player.specialAreaMultiplier;
+                        const explosionDamage = 500 * player.specialDamageMultiplier;
+                        entities.particles.push(new Particle(player.x, player.y, player.color, explosionRadius, 1000));
+                        entities.enemies.forEach(e => {
+                            if (Math.hypot(player.x - e.x, player.y - e.y) < explosionRadius) {
+                                e.takeDamage(explosionDamage);
+                            }
+                        });
+                    }
+                }
+            };
+
             const weaponList = {
                 buy: { name: "Buy", description: "Tire un projectile de base.", icon: '🔫', init: (p) => new BuyGun(p, 'buy') },
                 fomo: { name: "Fomo", description: "Mitraillette rapide, dégâts réduits.", icon: '⚙️', init: (p) => new FomoGun(p, 'fomo') },
@@ -3866,6 +3947,7 @@
             }
 
 
+
             const handleCharacterClick = (event) => {
                 const btn = event.target.closest('.char-select-btn');
                 if (!btn) return;
@@ -3877,7 +3959,7 @@
                     gameMode = 'survivor';
                     startGame(charType);
                 } else {
-                    const cost = characterData[charType].cost;
+                    const cost = CHARACTERS[charType].cost;
                     if (globalWallet >= cost) {
                         globalWallet -= cost;
                         unlockedCharacters.push(charType);
@@ -3892,9 +3974,39 @@
 
             function setupCharacterSelection() {
                 const charGrid = dom.screens.characterSelection.querySelector('.character-choices');
-                if (charGrid) {
-                    charGrid.style.display = 'grid'; // On s'assure que la grille est visible.
+                if (!charGrid) {
+                    console.error("Le conteneur .character-choices est introuvable !");
+                    return;
                 }
+
+                charGrid.innerHTML = ''; // Vider la grille pour éviter les doublons
+
+                // Utilise l'objet CHARACTERS que nous venons de définir
+                for (const charType in CHARACTERS) {
+                    const char = CHARACTERS[charType];
+                    const isUnlocked = unlockedCharacters.includes(charType);
+
+                    const btn = document.createElement('button');
+                    btn.className = 'char-select-btn';
+                    btn.dataset.char = charType;
+
+                    if (!isUnlocked) {
+                        btn.classList.add('locked');
+                    }
+
+                    btn.innerHTML = `
+                        <div class="char-icon">${char.icon}</div>
+                        <div class="char-name">${char.name}</div>
+                        <p class="char-desc">${char.description}</p>
+                        <div class="char-cost" style="display: ${isUnlocked ? 'none' : 'block'};">
+                            <span class="wallet-icon"></span>${char.cost.toLocaleString()}
+                        </div>
+                        ${isUnlocked ? '' : '<div class="lock-icon">🔒</div>'}
+                    `;
+                    charGrid.appendChild(btn);
+                }
+
+                // Mettre à jour l'UI pour refléter l'état de déverrouillage initial
                 updateCharacterSelectionUI();
             }
 
@@ -3915,7 +4027,7 @@
                     } else {
                         btn.classList.add('locked');
                         if (costEl) {
-                            const cost = characterData[charType].cost;
+                            const cost = CHARACTERS[charType].cost;
                             costEl.innerHTML = `&lt;span class="wallet-icon"&gt;&lt;/span&gt;${cost}`;
                             costEl.style.display = 'block';
                         }
