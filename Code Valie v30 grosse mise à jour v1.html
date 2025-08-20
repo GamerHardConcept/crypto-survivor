@@ -89,6 +89,7 @@
 
         /* --- Écrans (Menu, Game Over, Boutique) --- */
         .screen {
+            z-index: 10;
             position: absolute;
             top: 0;
             left: 0;
@@ -1804,7 +1805,7 @@
                     // État
                     this.specialCooldown = 0;
                     this.isInvincible = false;
-                    this.isBonusLevelUp = false; 
+                    if (this.isBonusLevelUp && this.level > 1) this.isBonusLevelUp = false; 
                     this.lastBossSpawnLevel = 0;
                     
                     // Propriétés du personnage
@@ -1941,7 +1942,7 @@
                     spawnBonusUpgrade();
                     gameState = 'levelUp';
                     this.upgradesToPick = 1; 
-                    displayLevelUpOptions();
+                    if (this.level > 1) { showLevelUpOptions(); }
                 }
 
                 useSpecial() {
@@ -3440,7 +3441,6 @@
             }
 
                         function gameLoop(timestamp) {
-                console.log(`Game loop running. State: ${gameState}, Mode: ${gameMode}`);
                 if (!lastTime) lastTime = timestamp;
                 const dt = timestamp - lastTime;
                 lastTime = timestamp;
