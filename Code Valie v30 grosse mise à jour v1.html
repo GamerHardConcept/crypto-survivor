@@ -1933,13 +1933,12 @@
                             updateAllUI();
                             createFloatingText('+1 Point!', this.x, this.y, 'gold');
                         }
-                        return;
+                    } else {
+                        spawnBonusUpgrade();
+                        gameState = 'levelUp';
+                        this.upgradesToPick = 1; 
+                        showLevelUpOptions();
                     }
-
-                    spawnBonusUpgrade();
-                    gameState = 'levelUp';
-                    this.upgradesToPick = 1; 
-                    showLevelUpOptions();
                 }
 
                 addWeapon(weapon) {
@@ -4073,22 +4072,6 @@
                         div.title = `${data.name} (${percentage})`;
                         dom.displays.passiveUpgrades.appendChild(div);
                     }
-                });
-            }
-
-            function updateWeaponUI() {
-                const humanPlayer = players[0];
-                if (!humanPlayer) return;
-                dom.displays.weaponUI.innerHTML = '';
-                humanPlayer.weapons.forEach(w => {
-                    const weaponInfo = weaponList[w.key];
-                    const icon = weaponInfo ? weaponInfo.icon : '?';
-                    const div = document.createElement('div');
-                    div.className = 'weapon-icon';
-                    div.style.color = `var(--level-${Math.min(w.level, 5)}-color)`;
-                    div.innerHTML = `<span>${icon}</span> <span>${w.level}</span>`;
-                    div.title = `${weaponInfo.name} Niv. ${w.level}`;
-                    dom.displays.weaponUI.appendChild(div);
                 });
             }
 
