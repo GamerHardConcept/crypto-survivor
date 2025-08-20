@@ -3298,6 +3298,10 @@
                 animationFrameId = requestAnimationFrame(gameLoop);
             }
 
+            function showCharacterSelection() {
+                showScreen('characterSelection');
+            }
+
             function startGame(charType) {
                 gameMode = 'survivor';
                 resetGameState(charType);
@@ -3871,31 +3875,62 @@
 
 
             function setupCharacterSelection() {
-                const container = dom.displays.charChoicesContainer;
-                container.innerHTML = '';
-                Object.keys(characterData).forEach(charName => {
-                    const char = characterData[charName];
-                    const button = document.createElement('button');
-                    button.className = 'char-button';
-                    const color = getComputedStyle(document.documentElement).getPropertyValue(char.colorVar);
-                    const iconClass = charName === 'MVX' ? 'char-icon mvx-logo-select' : 'char-icon';
-                    const iconSymbol = char.symbol;
+                const charSelectContainer = dom.screens.characterSelection.querySelector('.char-grid');
+                if (!charSelectContainer) return;
 
-                    button.innerHTML = `
-                        <span class="${iconClass}" style="color:${color};">${iconSymbol}</span>
-                        <strong>${charName}</strong>
-                        <small>${char.specialName}</small>
-                    `;
-                    if (unlockedCharacters.includes(charName)) {
-                        button.onclick = () => startGame(charName);
+                // Cette fonction est maintenant appelée une seule fois pour attacher les écouteurs.
+                // Une autre fonction mettra à jour l'état visuel si nécessaire.
+                if (!charSelectContainer.dataset.initialized) {
+                    charSelectContainer.querySelectorAll('.char-select-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const charType = btn.dataset.char;
+                            const isUnlocked = unlockedCharacters.includes(charType);
+
+                            if (isUnlocked) {
+                                gameMode = 'survivor'; // Définir le mode de jeu ICI
+                                startGame(charType);
+                            } else {
+                                const cost = characterData[charType].cost;
+                                if (globalWallet >= cost) {
+                                    globalWallet -= cost;
+                                    unlockedCharacters.push(charType);
+                                    saveGameState();
+                                    updateWalletDisplay();
+                                    updateCharacterSelectionUI(); // Mettre à jour seulement l'UI
+                                } else {
+                                    createFloatingText("Fonds insuffisants!", window.innerWidth / 2, window.innerHeight / 2, 'orange', 2000);
+                                }
+                            }
+                        });
+                    });
+                    charSelectContainer.dataset.initialized = 'true';
+                }
+                // Mettre à jour l'UI à chaque affichage
+                updateCharacterSelectionUI();
+            }
+
+            function updateCharacterSelectionUI() {
+                const charSelectContainer = dom.screens.characterSelection.querySelector('.char-grid');
+                if (!charSelectContainer) return;
+
+                charSelectContainer.querySelectorAll('.char-select-btn').forEach(btn => {
+                    const charType = btn.dataset.char;
+                    const isUnlocked = unlockedCharacters.includes(charType);
+                    const costEl = btn.querySelector('.char-cost');
+
+                    if (isUnlocked) {
+                        btn.classList.remove('locked');
+                        if(costEl) costEl.style.display = 'none';
                     } else {
-                        button.classList.add('locked');
-                        button.title = "À débloquer en battant ce boss.";
+                        btn.classList.add('locked');
+                        if(costEl) {
+                            costEl.style.display = 'block';
+                            costEl.innerHTML = `<span class="wallet-icon"></span>${characterData[charType].cost}`;
+                        }
                     }
-                    container.appendChild(button);
                 });
             }
-            
+
             function applyUpgrade(option) {
                 const humanPlayer = players[0];
                 if (option.type === 'upgradeWeapon') {
@@ -4296,7 +4331,7 @@
             // --- DONNÉES DE CONFIGURATION STATIQUES ---
             const characterData = {
                 'MVX': { name: 'MVX', colorVar: '--mvx-color', symbol: 'X', cooldown: 22000, special: (p) => { entities.projectiles.push(new Rocket(p.x, p.y, p)); }, specialName: "Roquette HODL" },
-                'AVAX': { name: 'AVAX', colorVar: '--avax-color', symbol: 'A', cooldown: 20000, special: (p) => {
+                'AVAX': { name: 'AVAX', cost: 1000, colorVar: '--avax-color', symbol: 'A', cooldown: 20000, special: (p) => {
                     createFloatingText('Avalanche!', p.x, p.y, 'white');
                     const numShards = 15;
                     const spread = Math.PI / 2 * p.specialAreaMultiplier;
@@ -4308,35 +4343,35 @@
                         entities.projectiles.push(new Projectile(p.x, p.y, 4, p_options));
                     }
                 }, specialName: "Avalanche" },
-                'ETH': { name: 'ETH', colorVar: '--eth-color', symbol: '♦', cooldown: 30000, special: (p) => {
+                'ETH': { name: 'ETH', cost: 2000, colorVar: '--eth-color', symbol: '♦', cooldown: 30000, special: (p) => {
                     createFloatingText('Gas Burn!', p.x, p.y, 'white');
                     const radius = p.radius * 10 * p.specialAreaMultiplier;
                     entities.particles.push(new Particle(p.x, p.y, 'rgba(98, 126, 234, 0.5)', radius, 500));
                     entities.enemies.forEach(e => { if(Math.hypot(p.x - e.x, p.y - e.y) < radius) e.takeDamage(50 * p.globalDamageMultiplier * (1 + p.permanentDamageBonus) * p.levelDamageBonus * p.specialDamageMultiplier); });
                 }, specialName: "Gas Burn" },
-                'SOL': { name: 'SOL', colorVar: '--sol-color', symbol: 'S', cooldown: 25000, special: (p) => {
+                'SOL': { name: 'SOL', cost: 3000, colorVar: '--sol-color', symbol: 'S', cooldown: 25000, special: (p) => {
                     createFloatingText('Network Haste!', p.x, p.y, 'white');
                     p.speed *= 2;
                     setTimeout(() => { if(p) p.speed /= 2; }, 3000);
                 }, specialName: "Network Haste" },
-                'AAVE': { name: 'AAVE', colorVar: '--aave-color', symbol: '👻', cooldown: 25000, special: (p) => {
+                'AAVE': { name: 'AAVE', cost: 5000, colorVar: '--aave-color', symbol: '👻', cooldown: 25000, special: (p) => {
                     createFloatingText('Flash Loan!', p.x, p.y, 'white');
                     for (let i = 0; i < 8; i++) {
                         const p_options = { angle: (Math.PI / 4) * i, speed: 7, damage: 20 * p.globalDamageMultiplier * (1 + p.permanentDamageBonus) * p.levelDamageBonus * p.specialDamageMultiplier, lifespan: 800, pierce: p.projectilePierceCount };
                         entities.projectiles.push(new Projectile(p.x, p.y, 5, p_options));
                     }
                 }, specialName: "Flash Loan" },
-                'BTC': { name: 'BTC', colorVar: '--btc-color', symbol: 'B', cooldown: 60000, special: (p) => {
+                'BTC': { name: 'BTC', cost: 10000, colorVar: '--btc-color', symbol: 'B', cooldown: 60000, special: (p) => {
                     createFloatingText('DIGITAL GOLD!', p.x, p.y, 'gold');
                     p.isInvincible = true;
                     setTimeout(() => { if(p) p.isInvincible = false; }, 5000);
                 }, specialName: "Digital Gold" },
-                'GRT': { name: 'GRT', colorVar: '--grt-color', symbol: 'G', cooldown: 25000, special: () => {}, specialName: "Indexing" },
-                'DOGE': { name: 'DOGE', colorVar: '--doge-color', symbol: 'D', cooldown: 25000, special: () => {}, specialName: "Much Wow" },
-                'CRO': { name: 'CRO', colorVar: '--cro-color', symbol: 'C', cooldown: 25000, special: () => {}, specialName: "Cronos Chain" },
-                'ZIL': { name: 'ZIL', colorVar: '--zil-color', symbol: 'Z', cooldown: 25000, special: () => {}, specialName: "Sharding" },
-                'BNB': { name: 'BNB', colorVar: '--bnb-color', symbol: 'N', cooldown: 25000, special: () => {}, specialName: "Smart Chain" },
-                'HTM': { name: 'HTM', colorVar: '--htm-color', symbol: 'H', cooldown: 25000, special: () => {}, specialName: "Liquid Stake" },
+                'GRT': { name: 'GRT', cost: 1500, colorVar: '--grt-color', symbol: 'G', cooldown: 25000, special: () => {}, specialName: "Indexing" },
+                'DOGE': { name: 'DOGE', cost: 500, colorVar: '--doge-color', symbol: 'D', cooldown: 25000, special: () => {}, specialName: "Much Wow" },
+                'CRO': { name: 'CRO', cost: 1200, colorVar: '--cro-color', symbol: 'C', cooldown: 25000, special: () => {}, specialName: "Cronos Chain" },
+                'ZIL': { name: 'ZIL', cost: 1800, colorVar: '--zil-color', symbol: 'Z', cooldown: 25000, special: () => {}, specialName: "Sharding" },
+                'BNB': { name: 'BNB', cost: 2500, colorVar: '--bnb-color', symbol: 'N', cooldown: 25000, special: () => {}, specialName: "Smart Chain" },
+                'HTM': { name: 'HTM', cost: 4000, colorVar: '--htm-color', symbol: 'H', cooldown: 25000, special: () => {}, specialName: "Liquid Stake" },
             };
             const bossProgression = [
                 { name: 'AVAX', symbol: 'A', colorVar: '--avax-color'},
