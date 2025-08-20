@@ -89,6 +89,7 @@
 
         /* --- Écrans (Menu, Game Over, Boutique) --- */
         .screen {
+            z-index: 10;
             position: absolute;
             top: 0;
             left: 0;
@@ -1007,14 +1008,53 @@
     <!-- Écran de Sélection de Mode Multijoueur -->
     <div id="multiplayer-mode-screen" class="screen">
         <div class="screen-content">
-            <h2>Choisissez un mode</h2>
-            <div class="menu-buttons">
-                <button id="army-attack-button" class="action-button">Army Attaque</button>
-                <button class="action-button" disabled>Tower Defence</button>
-                <button class="action-button" disabled>Coming Soon</button>
-                <button class="action-button" disabled>Coming Soon</button>
+            <h1>Multijoueur</h1>
+            
+            <div class="form-group">
+                <label for="server-url-input">Adresse du Serveur</label>
+                <input type="text" id="server-url-input" value="https://crypto-survivor.onrender.com">
             </div>
-            <button id="back-to-menu-from-mode-select-button" class="action-button" style="background-color: var(--disabled-color);">Retour</button>
+            <button id="connect-to-server-btn" class="action-button">Connexion</button>
+            <div id="connection-status" style="min-height: 1.2em; margin-top: 10px; font-weight: bold;"></div>
+
+            <div class="menu-buttons" style="margin-top: 20px; border-top: 1px solid var(--primary-color); padding-top: 20px;">
+                <button id="create-private-game-btn" class="action-button" disabled>Créer une partie privée</button>
+                <button id="join-private-game-btn" class="action-button" disabled>Rejoindre une partie privée</button>
+                <button id="army-attack-button" class="action-button">Jouer contre l'IA (Army Attack)</button>
+                <button id="back-to-main-menu-from-multiplayer-mode" class="action-button back-button">Retour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Écran de création de partie avec mot de passe -->
+    <div id="create-game-password-screen" class="screen">
+        <div class="screen-content">
+            <h1>Créer une partie privée</h1>
+            <p>Choisissez un mot de passe pour votre partie.</p>
+            <div class="input-group">
+                <label for="create-game-password-input">Mot de passe</label>
+                <input type="text" id="create-game-password-input" placeholder="Mot de passe (4-8 caractères)">
+            </div>
+            <div class="menu-buttons" style="margin-top: 20px;">
+                <button id="create-game-next-btn" class="action-button" disabled>Suivant</button>
+                <button id="back-to-multiplayer-mode-from-create" class="action-button back-button">Retour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Écran pour rejoindre une partie avec un code -->
+    <div id="join-game-code-screen" class="screen">
+        <div class="screen-content">
+            <h1>Rejoindre une partie privée</h1>
+            <p>Entrez le code de la partie que vous souhaitez rejoindre.</p>
+            <div class="input-group">
+                <label for="join-game-code-input">Code de la partie</label>
+                <input type="text" id="join-game-code-input" placeholder="Code à 6 caractères">
+            </div>
+            <div class="menu-buttons" style="margin-top: 20px;">
+                <button id="join-game-confirm-btn" class="action-button" disabled>Rejoindre</button>
+                <button id="back-to-multiplayer-mode-from-join" class="action-button back-button">Retour</button>
+            </div>
         </div>
     </div>
 
@@ -1472,31 +1512,48 @@
 
             // --- SÉLECTEURS D'ÉLÉMENTS DU DOM ---
             const dom = {
+                canvas: document.getElementById('game-canvas'),
+                ctx: document.getElementById('game-canvas').getContext('2d'),
                 screens: {
                     mainMenu: document.getElementById('main-menu-screen'),
+                    shop: document.getElementById('shop-screen'),
                     characterSelection: document.getElementById('character-selection-screen'),
                     mapSelection: document.getElementById('map-selection-screen'),
-                    levelUp: document.getElementById('level-up-screen'),
-                    gameOver: document.getElementById('game-over-screen'),
-                    shop: document.getElementById('shop-screen'),
-                    pause: document.getElementById('pause-screen'),
-                    confirmQuit: document.getElementById('confirm-quit-screen'),
+                    multiplayerMode: document.getElementById('multiplayer-mode-screen'),
+                    createGamePassword: document.getElementById('create-game-password-screen'),
+                    joinGameCode: document.getElementById('join-game-code-screen'),
                     multiplayerLobby: document.getElementById('multiplayer-lobby-screen'),
                     waitingRoom: document.getElementById('waiting-room-screen'),
-                    multiplayerMode: document.getElementById('multiplayer-mode-screen'),
+                    pause: document.getElementById('pause-screen'),
+                    confirmQuit: document.getElementById('confirm-quit-screen'),
+                    gameOver: document.getElementById('game-over-screen'),
+                    levelUp: document.getElementById('level-up-screen'),
                 },
-                inputs: {
-                    gameId: document.getElementById('game-id-input'),
-                },
-                gameHud: document.getElementById('game-hud'),
-                armyPanel: document.getElementById('army-purchase-panel'),
-                upgradePanel: document.getElementById('upgrade-panel'),
                 buttons: {
+                    // Menu Principal
                     startGame: document.getElementById('start-game-button'),
                     multiplayer: document.getElementById('multiplayer-button'),
                     shop: document.getElementById('shop-button'),
-                    backToMenu: document.getElementById('back-to-menu-button'),
+                    // Menu Multijoueur
+                    createPrivateGame: document.getElementById('create-private-game-button'),
+                    joinPrivateGame: document.getElementById('join-private-game-button'),
+                    armyAttack: document.getElementById('army-attack-button'),
+                    backToMainMenuFromMultiplayerMode: document.getElementById('back-to-main-menu-from-multiplayer-mode'),
+                    // Écran Créer Partie
+                    createGameNext: document.getElementById('create-game-next-button'),
+                    backToMultiplayerModeFromCreate: document.getElementById('back-to-multiplayer-mode-from-create'),
+                    // Écran Rejoindre Partie
+                    joinGameConfirm: document.getElementById('join-game-confirm-button'),
+                    backToMultiplayerModeFromJoin: document.getElementById('back-to-multiplayer-mode-from-join'),
+                    // Autres retours & navigation
+                    backToMenuFromShop: document.getElementById('back-to-menu-button'),
                     backFromCharSelect: document.getElementById('back-to-menu-from-char-select-button'),
+                    backToMenuFromLobby: document.getElementById('back-to-menu-from-lobby-button'),
+                    nextFromMapSelect: document.getElementById('next-from-map-select-button'),
+                    backToMenuFromMapSelect: document.getElementById('back-to-menu-from-map-select-button'),
+                    startVsAi: document.getElementById('start-vs-ai-button'),
+                    backToLobbyFromWaiting: document.getElementById('back-to-lobby-from-waiting-button'),
+                    // HUD et jeu
                     restart: document.getElementById('restart-button'),
                     specialAbility: document.getElementById('special-ability-button'),
                     mute: document.getElementById('mute-button'),
@@ -1504,49 +1561,78 @@
                     resume: document.getElementById('resume-button'),
                     restartFromPause: document.getElementById('restart-from-pause-button'),
                     mainMenuFromPause: document.getElementById('main-menu-from-pause-button'),
-                    confirmQuitYes: document.getElementById('confirm-quit-yes-button'),
-                    confirmQuitNo: document.getElementById('confirm-quit-no-button'),
+                    confirmQuitYes: document.getElementById('confirm-quit-yes'),
+                    confirmQuitNo: document.getElementById('confirm-quit-no'),
                     confirmUpgrade: document.getElementById('confirm-upgrade-button'),
-                    createGame: document.getElementById('create-game-button'),
-                    joinGame: document.getElementById('join-game-button'),
-                    backToMenuFromLobby: document.getElementById('back-to-menu-from-lobby-button'),
-                    backToLobbyFromWaiting: document.getElementById('back-to-lobby-from-waiting-button'),
-                    startVsAi: document.getElementById('start-vs-ai-button'),
-                    nextFromMapSelect: document.getElementById('next-from-map-select-button'),
-                    backToMenuFromMapSelect: document.getElementById('back-to-menu-from-map-select-button'),
-                    armyAttack: document.getElementById('army-attack-button'),
-                    backToMenuFromModeSelect: document.getElementById('back-to-menu-from-mode-select-button'),
                     armyPanelToggle: document.getElementById('army-panel-toggle'),
                     upgradePanelToggle: document.getElementById('upgrade-panel-toggle'),
+                    connectToServer: document.getElementById('connect-to-server-button'),
+                },
+                inputs: {
+                    // Nouveaux champs de saisie
+                    createGamePassword: document.getElementById('create-game-password-input'),
+                    joinGameCode: document.getElementById('join-game-code-input'),
+                    serverUrl: document.getElementById('server-url-input'),
+                    // ---
+                    gameId: document.getElementById('game-id-input'), // Ancien champ, sera supprimé du HTML plus tard
+                    username: document.getElementById('username-input'),
+                    password: document.getElementById('password-input'),
                 },
                 displays: {
+                    globalWallet: document.getElementById('global-wallet-amount'),
+                    level: document.getElementById('level-display'),
+                    timer: document.getElementById('timer-display'),
+                    killCount: document.getElementById('kill-count-display'),
+                    wallet: document.getElementById('wallet-amount'),
+                    hpBar: document.getElementById('hp-bar-fill'),
+                    hpBarText: document.getElementById('hp-bar-text'),
+                    specialCooldown: document.getElementById('special-cooldown-fill'),
+                    levelUpOptions: document.getElementById('level-up-options'),
+                    levelUpTitle: document.getElementById('level-up-title'),
+                    gameOverStats: document.getElementById('game-over-stats'),
+                    gameIdDisplay: document.getElementById('game-id-display'),
+                    playerList: document.getElementById('player-list-in-waiting-room'),
+                    authMessage: document.getElementById('auth-message'),
+                    connectionStatus: document.getElementById('connection-status'),
+                    xpBar: document.getElementById('xp-bar-fill'),
+                    xpBarText: document.getElementById('xp-bar-text'),
+                    playerQuadrant: document.getElementById('player-quadrant'),
+                    bot1Quadrant: document.getElementById('bot1-quadrant'),
+                    bot2Quadrant: document.getElementById('bot2-quadrant'),
+                    bot3Quadrant: document.getElementById('bot3-quadrant'),
+                    version: document.getElementById('version-display'),
+                    // Copie des champs manquants depuis la lecture du fichier
                     charChoicesContainer: document.getElementById('character-choices-container'),
                     passiveUpgrades: document.getElementById('passive-upgrades-display'),
                     weaponUI: document.getElementById('weapon-display-ui'),
-                    levelUpOptions: document.getElementById('level-up-options'),
-                    levelUpTitle: document.getElementById('level-up-title'),
                     levelUpSubtitle: document.getElementById('level-up-subtitle'),
                     topHealthBarFill: document.getElementById('top-health-bar-fill'),
                     topHealthBarText: document.getElementById('top-health-bar-text'),
                     playerLevel: document.getElementById('player-level'),
                     playerWallet: document.getElementById('player-wallet'),
                     gameTimer: document.getElementById('game-timer'),
-                    xpBar: document.getElementById('xp-bar'),
-                    xpBarText: document.getElementById('xp-bar-text'),
                     finalTime: document.getElementById('final-time'),
                     finalLevel: document.getElementById('final-level'),
                     finalGain: document.getElementById('final-gain'),
-                    shopWallet: document.getElementById('shop-wallet-display'),
+                    shopWallet: document.getElementById('shop-wallet-amount'),
                     shopItemsContainer: document.getElementById('shop-items-container'),
                     minimapCanvas: document.getElementById('minimap-canvas'),
                     bonusTimer: document.getElementById('bonus-timer'),
-                    gameIdDisplay: document.getElementById('game-id-display'),
                     skillPoints: document.getElementById('skill-points-display'),
                     multiplayerUpgradesContainer: document.getElementById('multiplayer-upgrades-container'),
                     fusionTitle: document.getElementById('fusion-title'),
                     fusionOptionsContainer: document.getElementById('fusion-options-container'),
                     pentagramChargeContainer: document.getElementById('pentagram-charge-container'),
                     pentagramChargeBar: document.getElementById('pentagram-charge-bar'),
+                },
+                panels: {
+                    armyPanel: document.getElementById('army-panel'),
+                    upgradePanel: document.getElementById('multiplayer-upgrade-panel'),
+                },
+                gameHud: document.getElementById('game-hud'),
+                joystick: {
+                    zone: document.getElementById('joystick-zone'),
+                    stick: document.getElementById('joystick-stick')
                 }
             };
 
@@ -1798,14 +1884,15 @@
                         createFloatingText('FUD!', this.x, this.y, 'red');
                     }
                     if (this.hp <= 0) { 
-                        this.hp = 0; 
+                        this.hp = 0;
+                        endGame(null); // Le joueur est le perdant, pas de gagnant en solo
                     }
                 }
 
                 gainXp(amount) {
                     const totalXpBonus = this.xpGainBonus * (1 + this.permanentXpGainBonus);
                     this.xp += amount * totalXpBonus;
-                    if (activeMiniBoss) return; 
+                    if (activeMiniBoss) return;
 
                     while (this.xp >= this.xpToNextLevel) {
                         this.levelUp();
@@ -2407,20 +2494,8 @@
 
                     if (this.target && this.fireTimer <= 0) {
                         const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-                        const p_options = {
-                            angle,
-                            speed: this.stats.projectileSpeed,
-                            damage: this.getDamage(),
-                            lifespan: 1200,
-                            color: this.color,
-                            pierce: 0
-                        };
-
-                        if (this.unitType === 'rectangle') {
-                            entities.projectiles.push(new Missile(this.x, this.y, 4, p_options));
-                        } else {
-                            entities.projectiles.push(new Projectile(this.x, this.y, 4, p_options));
-                        }
+                        const p_options = { angle, speed: this.stats.projectileSpeed, damage: this.getDamage(), lifespan: 1200, color: this.color, pierce: 0 };
+                        entities.projectiles.push(new Projectile(this.x, this.y, 4, p_options));
                         
                         this.fireTimer = this.getFireRate();
                     }
@@ -2938,6 +3013,16 @@
                     showScreen('multiplayerMode');
                 });
 
+                dom.buttons.connectToServer.addEventListener('click', () => {
+                    const serverUrl = dom.inputs.serverUrl.value.trim();
+                    if (serverUrl) {
+                        initializeSocket(serverUrl);
+                    } else {
+                        dom.displays.connectionStatus.textContent = 'Veuillez entrer une URL de serveur.';
+                        dom.displays.connectionStatus.style.color = 'orange';
+                    }
+                });
+
                 dom.buttons.shop.addEventListener('click', async () => {
                      await audioManager.initialize();
                      audioManager.playMusic('menu');
@@ -2967,8 +3052,16 @@
                     showScreen('multiplayerMode');
                 });
                 
-                dom.buttons.backToMenuFromModeSelect.addEventListener('click', () => {
+                dom.buttons.backToMainMenuFromMultiplayerMode.addEventListener('click', () => {
                     showScreen('mainMenu');
+                });
+
+                dom.buttons.backToMultiplayerModeFromCreate.addEventListener('click', () => {
+                    showScreen('multiplayerMode');
+                });
+
+                dom.buttons.backToMultiplayerModeFromJoin.addEventListener('click', () => {
+                    showScreen('multiplayerMode');
                 });
                 
                 dom.buttons.armyAttack.addEventListener('click', () => {
@@ -2996,10 +3089,7 @@
 
 
                 dom.buttons.createGame.addEventListener('click', () => {
-                    socket.emit('createGame', { 
-                        playerName: currentPlayer.username,
-                        map: selectedMap
-                    });
+                    socket.emit('createGame', { username: currentPlayer.username, map: selectedMap });
                 });
 
                 dom.buttons.joinGame.addEventListener('click', () => {
@@ -3286,11 +3376,9 @@
                 dom.displays.passiveUpgrades.classList.add('hidden');
                 dom.displays.weaponUI.classList.add('hidden');
                 dom.armyPanel.classList.add('hidden');
-                dom.upgradePanel.classList.add('hidden');
-                
                 showScreen('gameOver');
             }
-            
+
             function resetGameState(charType) {
                 players = [];
                 const humanPlayer = new Player(charType, 1);
@@ -3379,6 +3467,7 @@
                 } else if (gameMode === 'armyAttack') {
                     updateArmyAttack(dt);
                 }
+                handleCollisions();
             }
 
             function draw() {
@@ -3691,13 +3780,6 @@
                 }
             }
 
-            // --- GESTION DE L'UI ---
-            function updateAllUI() {
-                updateHud();
-                updateWeaponUI();
-                updatePassiveUpgradesDisplay();
-            }
-
             function showScreen(screenId) {
                 Object.values(dom.screens).forEach(screen => screen.classList.remove('active'));
                 if (screenId && dom.screens[screenId]) {
@@ -4006,6 +4088,12 @@
                     div.title = `${weaponInfo.name} Niv. ${w.level}`;
                     dom.displays.weaponUI.appendChild(div);
                 });
+            }
+
+            function updateAllUI() {
+                updateHud();
+                updateWeaponUI();
+                updatePassiveUpgradesDisplay();
             }
 
             // --- LOGIQUE DE SPAWN ---
@@ -4566,16 +4654,101 @@
                 passwordStrengthText.style.color = color;
             }
 
-            console.log('Tentative de connexion au serveur Socket.IO...');
-            const socket = io("https://crypto-survivor.onrender.com");
+            let socket; // Déclarer la socket sans l'initialiser
 
-            socket.on('connect', () => {
-                console.log('SUCCÈS : Connecté au serveur Socket.IO avec l\'ID :', socket.id);
-            });
+            function initializeSocket(serverUrl) {
+                if (socket && socket.connected) {
+                    socket.disconnect();
+                }
 
-            socket.on('connect_error', (err) => {
-                console.error('ERREUR : La connexion au serveur Socket.IO a échoué.', err);
-            });
+                const isMultiplayerMenu = dom.screens.multiplayerMode.style.display === 'block';
+                const statusDisplay = isMultiplayerMenu ? dom.displays.connectionStatus : loginError;
+
+                statusDisplay.textContent = 'Connexion en cours...';
+                statusDisplay.style.color = 'white';
+                if (isMultiplayerMenu) {
+                    dom.buttons.createPrivateGame.disabled = true;
+                    dom.buttons.joinPrivateGame.disabled = true;
+                } else {
+                    submitButton.disabled = true;
+                }
+
+                console.log(`Tentative de connexion au serveur Socket.IO sur ${serverUrl}...`);
+                socket = io(serverUrl, {
+                    reconnection: true,
+                    reconnectionAttempts: 3,
+                    reconnectionDelay: 1000,
+                    timeout: 5000,
+                });
+
+                // --- GESTION DES ÉVÉNEMENTS SOCKET --- 
+                socket.on('connect', () => {
+                    console.log('SUCCÈS : Connecté au serveur Socket.IO avec l\'ID :', socket.id);
+                    statusDisplay.textContent = 'Connecté !';
+                    statusDisplay.style.color = 'lime';
+                    if (isMultiplayerMenu) {
+                        dom.buttons.createPrivateGame.disabled = false;
+                        dom.buttons.joinPrivateGame.disabled = false;
+                    } else {
+                        submitButton.disabled = false;
+                    }
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('ERREUR : La connexion au serveur Socket.IO a échoué.', err);
+                    statusDisplay.textContent = `Erreur de connexion.`;
+                    statusDisplay.style.color = 'red';
+                    if (isMultiplayerMenu) {
+                        dom.buttons.createPrivateGame.disabled = true;
+                        dom.buttons.joinPrivateGame.disabled = true;
+                    } else {
+                        submitButton.disabled = false;
+                    }
+                });
+
+                socket.on('register-success', (data) => {
+                    loginError.style.color = 'var(--health-color)';
+                    loginError.textContent = `Inscription réussie pour ${data.username} ! Vous pouvez maintenant vous connecter.`;
+                    submitButton.disabled = false; 
+                    switchToRegister(false);
+                });
+
+                socket.on('register-error', (message) => {
+                    loginError.style.color = '#e74c3c';
+                    loginError.textContent = message;
+                    submitButton.disabled = false;
+                });
+
+                socket.on('login-success', (data) => {
+                    submitButton.disabled = false;
+                    onLoginSuccess(data);
+                });
+
+                socket.on('login-error', (message) => {
+                    loginError.style.color = '#e74c3c';
+                    loginError.textContent = message;
+                    submitButton.disabled = false;
+                });
+
+                socket.on('gameCreated', ({ gameId, players, map }) => {
+                    dom.displays.gameIdDisplay.textContent = gameId;
+                    updatePlayerList(players, map);
+                    showScreen('waitingRoom');
+                });
+
+                socket.on('updatePlayerList', ({ players, map }) => {
+                    updatePlayerList(players, map);
+                });
+
+                socket.on('gameStarted', () => {
+                    gameMode = 'multiplayer';
+                    startGame(selectedMap);
+                });
+
+                socket.on('joinError', (message) => {
+                    alert(message); // Simple alert for now
+                });
+            }
 
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -4583,67 +4756,37 @@
                 submitButton.disabled = true;
                 const username = usernameInput.value;
                 const password = passwordInput.value;
+                
+                // Utiliser l'URL du serveur par défaut pour la connexion/inscription
+                // Cette partie sera modifiée plus tard pour utiliser l'URL des autres écrans
+                const serverUrl = "https://crypto-survivor.onrender.com"; 
+                initializeSocket(serverUrl);
 
-                if (isRegisterMode) {
-                    const score = checkPasswordStrength(password);
-                    if (score < 3) {
-                        loginError.textContent = 'Le mot de passe est trop faible.';
-                        submitButton.disabled = false;
+                // On attend un court instant que la connexion s'établisse
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        // Si la connexion n'est pas établie après un délai, on ne continue pas.
+                        // L'erreur est déjà gérée par 'connect_error'
                         return;
                     }
-                    if (password !== confirmPasswordInput.value) {
-                        loginError.textContent = 'Les mots de passe ne correspondent pas.';
-                        submitButton.disabled = false;
-                        return;
+
+                    if (isRegisterMode) {
+                        const score = checkPasswordStrength(password);
+                        if (score < 3) {
+                            loginError.textContent = 'Le mot de passe est trop faible.';
+                            submitButton.disabled = false;
+                            return;
+                        }
+                        if (password !== confirmPasswordInput.value) {
+                            loginError.textContent = 'Les mots de passe ne correspondent pas.';
+                            submitButton.disabled = false;
+                            return;
+                        }
+                        socket.emit('register', { username, password });
+                    } else {
+                        socket.emit('login', { username, password });
                     }
-                    socket.emit('register', { username, password });
-                } else {
-                    socket.emit('login', { username, password });
-                }
-            });
-
-            socket.on('register-success', (data) => {
-                loginError.style.color = 'var(--health-color)';
-                loginError.textContent = `Inscription réussie pour ${data.username} ! Vous pouvez maintenant vous connecter.`;
-                submitButton.disabled = false;
-                switchToRegister(false);
-            });
-
-            socket.on('register-error', (message) => {
-                loginError.style.color = '#e74c3c';
-                loginError.textContent = message;
-                submitButton.disabled = false;
-            });
-
-            socket.on('login-success', (data) => {
-                submitButton.disabled = false;
-                onLoginSuccess(data);
-            });
-
-            socket.on('gameCreated', ({ gameId, players, map }) => {
-                dom.displays.gameIdDisplay.textContent = gameId;
-                updatePlayerList(players, map);
-                showScreen('waitingRoom');
-            });
-
-            socket.on('updatePlayerList', ({ players, map }) => {
-                updatePlayerList(players, map);
-            });
-
-            socket.on('gameStarted', () => {
-                // Le serveur a démarré la partie, on peut lancer le jeu localement
-                gameMode = 'multiplayer';
-                startGame(selectedMap);
-            });
-
-            socket.on('joinError', (message) => {
-                alert(message); // Simple alert for now
-            });
-
-            socket.on('login-error', (message) => {
-                loginError.style.color = '#e74c3c';
-                loginError.textContent = message;
-                submitButton.disabled = false;
+                }, 500); // Délai de 500ms pour la connexion
             });
 
             function onLoginSuccess(playerData) {
@@ -4660,7 +4803,6 @@
                 // Lancement du jeu après connexion
                 init(); 
             }
-
         });
     </script>
 </body>
