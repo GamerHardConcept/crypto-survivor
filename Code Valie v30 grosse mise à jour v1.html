@@ -1880,10 +1880,7 @@
                     if (this.isInvincible) return;
                     audioManager.play('playerHit');
                     this.hp -= amount;
-                    if (this.playerId === 1) { // Seulement pour le joueur humain
-                        createFloatingText('FUD!', this.x, this.y, 'red');
-                    }
-                    if (this.hp <= 0) { 
+                    if (this.hp <= 0) {
                         this.hp = 0;
                         endGame(null); // Le joueur est le perdant, pas de gagnant en solo
                     }
@@ -1943,6 +1940,11 @@
                     gameState = 'levelUp';
                     this.upgradesToPick = 1; 
                     showLevelUpOptions();
+                }
+
+                addWeapon(weapon) {
+                    this.weapons.push(weapon);
+                    updateWeaponDisplay();
                 }
 
                 useSpecial() {
@@ -3387,7 +3389,7 @@
                 if (gameMode === 'survivor') {
                     humanPlayer.x = WORLD_WIDTH / 2;
                     humanPlayer.y = WORLD_HEIGHT / 2;
-                    humanPlayer.weapons.push(weaponList.buy.init(humanPlayer));
+                    humanPlayer.addWeapon(weaponList.buy.init(humanPlayer));
                 } else if (gameMode === 'armyAttack') {
                     // Reset multiplayer upgrades for the new game
                     Object.keys(multiplayerUpgrades).forEach(key => {
@@ -3404,14 +3406,14 @@
                         
                         players[0].x = positions[0].x;
                         players[0].y = positions[0].y;
-                        players[0].weapons.push(weaponList.buy.init(players[0]));
+                        players[0].addWeapon(weaponList.buy.init(players[0]));
 
                         const botChars = ['AVAX', 'SOL', 'ETH'];
                         for (let i = 0; i < 3; i++) {
                             const bot = new BotPlayer(botChars[i], i + 2);
                             bot.x = positions[i + 1].x;
                             bot.y = positions[i + 1].y;
-                            bot.weapons.push(weaponList.buy.init(bot));
+                            bot.addWeapon(weaponList.buy.init(bot));
                             players.push(bot);
                         }
                     } else if (selectedMap === 'vertical_2p') {
@@ -3421,11 +3423,11 @@
                         ];
                         players[0].x = positions[0].x;
                         players[0].y = positions[0].y;
-                        players[0].weapons.push(weaponList.buy.init(players[0]));
+                        players[0].addWeapon(weaponList.buy.init(players[0]));
                         const bot = new BotPlayer('AVAX', 2);
                         bot.x = positions[1].x;
                         bot.y = positions[1].y;
-                        bot.weapons.push(weaponList.buy.init(bot));
+                        bot.addWeapon(weaponList.buy.init(bot));
                         players.push(bot);
                     }
                 }
@@ -3901,7 +3903,7 @@
                 if (option.type === 'upgradeWeapon') {
                     option.weapon.upgrade();
                 } else if (option.type === 'newWeapon') {
-                    humanPlayer.weapons.push(weaponList[option.weaponKey].init(humanPlayer));
+                    humanPlayer.addWeapon(weaponList[option.weaponKey].init(humanPlayer));
                 } else if (option.type === 'passive') {
                     passiveUpgrades[option.key].apply(humanPlayer, option.bonus);
                     humanPlayer.acquiredPassives.push({ key: option.key, level: option.level, bonus: option.bonus });
@@ -4046,7 +4048,7 @@
                 }
             }
             
-            function updatePassiveUpgradesDisplay() {
+            function updatePassiveUpgradesUI() {
                  const humanPlayer = players[0];
                  if (!humanPlayer) return;
                  dom.displays.passiveUpgrades.innerHTML = '';
@@ -4090,10 +4092,29 @@
                 });
             }
 
+            function updateWeaponDisplay() {
+                const container = dom.displays.weaponUI;
+                if (!container) return;
+                container.innerHTML = '';
+                const humanPlayer = players[0];
+                if (!humanPlayer) return;
+
+                humanPlayer.weapons.forEach(weapon => {
+                    const weaponInfo = weaponList[weapon.key];
+                    if (weaponInfo) {
+                        const icon = document.createElement('div');
+                        icon.className = 'weapon-icon';
+                        icon.textContent = `${weaponInfo.icon} ${weapon.level}`;
+                        container.appendChild(icon);
+                    }
+                });
+            }
+
             function updateAllUI() {
                 updateHud();
-                updateWeaponUI();
-                updatePassiveUpgradesDisplay();
+
+                updateWeaponDisplay();
+                updatePassiveUpgradesUI();
             }
 
             // --- LOGIQUE DE SPAWN ---
