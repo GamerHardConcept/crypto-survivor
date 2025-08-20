@@ -1567,31 +1567,17 @@
                     armyPanelToggle: document.getElementById('army-panel-toggle'),
                     upgradePanelToggle: document.getElementById('upgrade-panel-toggle'),
                     connectToServer: document.getElementById('connect-to-server-button'),
+                    startMultiplayerGame: document.getElementById('start-multiplayer-game-button'),
+                    // Écran de fin de partie (mode Army Attack)
+                    gameOverLobby: document.getElementById('game-over-lobby-button'),
+                    gameOverSpectate: document.getElementById('game-over-spectate-button'),
+                    gameOverQuit: document.getElementById('game-over-quit-button'),
                 },
                 inputs: {
+                    playerCount: document.getElementById('player-count'),
+                    maxPlayers: document.getElementById('max-players'),
                     // Nouveaux champs de saisie
-                    createGamePassword: document.getElementById('create-game-password-input'),
-                    joinGameCode: document.getElementById('join-game-code-input'),
-                    serverUrl: document.getElementById('server-url-input'),
-                    // ---
-                    gameId: document.getElementById('game-id-input'), // Ancien champ, sera supprimé du HTML plus tard
-                    username: document.getElementById('username-input'),
-                    password: document.getElementById('password-input'),
-                },
-                displays: {
-                    globalWallet: document.getElementById('global-wallet-amount'),
-                    level: document.getElementById('level-display'),
-                    timer: document.getElementById('timer-display'),
-                    killCount: document.getElementById('kill-count-display'),
-                    wallet: document.getElementById('wallet-amount'),
-                    hpBar: document.getElementById('hp-bar-fill'),
-                    hpBarText: document.getElementById('hp-bar-text'),
-                    specialCooldown: document.getElementById('special-cooldown-fill'),
-                    levelUpOptions: document.getElementById('level-up-options'),
-                    levelUpTitle: document.getElementById('level-up-title'),
-                    gameOverStats: document.getElementById('game-over-stats'),
-                    gameIdDisplay: document.getElementById('game-id-display'),
-                    playerList: document.getElementById('player-list-in-waiting-room'),
+                    playerList: document.getElementById('player-list'),
                     authMessage: document.getElementById('auth-message'),
                     connectionStatus: document.getElementById('connection-status'),
                     xpBar: document.getElementById('xp-bar-fill'),
@@ -1601,6 +1587,16 @@
                     bot2Quadrant: document.getElementById('bot2-quadrant'),
                     bot3Quadrant: document.getElementById('bot3-quadrant'),
                     version: document.getElementById('version-display'),
+                    // Multijoueur
+                    lobbyPlayerName: document.getElementById('lobby-player-name'),
+                    gameIdInput: document.getElementById('join-game-code-input'),
+                    gameIdDisplay: document.getElementById('game-id-display'),
+                    // Écran de fin de partie
+                    gameOverTitle: document.getElementById('game-over-title'),
+                    survivorStats: document.getElementById('survivor-stats'),
+                    finalTime: document.getElementById('final-time'),
+                    finalLevel: document.getElementById('final-level'),
+                    finalGain: document.getElementById('final-gain'),
                     // Copie des champs manquants depuis la lecture du fichier
                     charChoicesContainer: document.getElementById('character-choices-container'),
                     passiveUpgrades: document.getElementById('passive-upgrades-display'),
@@ -1614,7 +1610,7 @@
                     finalTime: document.getElementById('final-time'),
                     finalLevel: document.getElementById('final-level'),
                     finalGain: document.getElementById('final-gain'),
-                    shopWallet: document.getElementById('shop-wallet-amount'),
+                    shopWallet: document.getElementById('shop-wallet-display'),
                     shopItemsContainer: document.getElementById('shop-items-container'),
                     minimapCanvas: document.getElementById('minimap-canvas'),
                     bonusTimer: document.getElementById('bonus-timer'),
@@ -1626,13 +1622,13 @@
                     pentagramChargeBar: document.getElementById('pentagram-charge-bar'),
                 },
                 panels: {
-                    armyPanel: document.getElementById('army-panel'),
+                    armyPanel: document.getElementById('army-purchase-panel'),
                     upgradePanel: document.getElementById('multiplayer-upgrade-panel'),
                 },
                 gameHud: document.getElementById('game-hud'),
                 joystick: {
-                    zone: document.getElementById('joystick-zone'),
-                    stick: document.getElementById('joystick-stick')
+                    zone: document.getElementById('joystick-container'),
+                    stick: document.getElementById('joystick-handle')
                 }
             };
 
@@ -2995,13 +2991,17 @@
                 loadGameState(); // Charger les données au démarrage
                 updateZoom();
                 resizeCanvas();
-                setupEventListeners();
-                setupCharacterSelection();
-            }
-            
-            function setupEventListeners() {
                 window.addEventListener('resize', resizeCanvas);
-                
+                setupEventListeners();
+                initShop(); // Initialiser la boutique
+                showScreen('mainMenu');
+                updateWalletDisplay();
+            }
+
+            function setupEventListeners() {
+                // Gestion centralisée du clic sur la sélection de personnage via délégation.
+                dom.screens.characterSelection.addEventListener('click', handleCharacterClick);
+
                 dom.buttons.startGame.addEventListener('click', async () => {
                     await audioManager.initialize(); // Initialise l'audio au premier clic
                     audioManager.playMusic('menu');
@@ -3009,7 +3009,7 @@
                     showScreen('characterSelection');
                     setupCharacterSelection(); // Appelé APRÈS l'affichage de l'écran
                 });
-                
+
                 dom.buttons.multiplayer.addEventListener('click', () => {
                     showScreen('multiplayerMode');
                 });
@@ -3035,12 +3035,12 @@
                     audioManager.playMusic('menu');
                     showScreen('mainMenu');
                 });
-                
+
                 dom.buttons.backFromCharSelect.addEventListener('click', () => {
                     audioManager.playMusic('menu');
                     showScreen('mainMenu');
                 });
-                
+
                 dom.buttons.backToMenuFromLobby.addEventListener('click', () => {
                     showScreen('mapSelection');
                 });
@@ -3071,9 +3071,8 @@
 
                 dom.buttons.nextFromMapSelect.addEventListener('click', () => {
                     if (selectedMap) {
-                        const lobbyPlayerName = document.getElementById('lobby-player-name');
-                        if (lobbyPlayerName && currentPlayer) {
-                            lobbyPlayerName.textContent = currentPlayer.username;
+                        if (dom.displays.lobbyPlayerName && currentPlayer) {
+                            dom.displays.lobbyPlayerName.textContent = currentPlayer.username;
                         }
                         showScreen('multiplayerLobby');
                     }
@@ -3094,21 +3093,20 @@
                 });
 
                 dom.buttons.joinGame.addEventListener('click', () => {
-                    const gameId = dom.inputs.gameId.value.toUpperCase();
+                    const gameId = dom.displays.gameIdInput.value.toUpperCase();
                     socket.emit('joinGame', { 
                         playerName: currentPlayer.username, 
                         gameId 
                     });
                 });
 
-                const startMultiplayerGameButton = document.getElementById('start-multiplayer-game-button');
-                startMultiplayerGameButton.addEventListener('click', () => {
+                dom.buttons.startMultiplayerGame.addEventListener('click', () => {
                     const gameId = dom.displays.gameIdDisplay.textContent;
                     socket.emit('startGame', { gameId });
                 });
 
-                dom.inputs.gameId.addEventListener('input', () => {
-                    dom.buttons.joinGame.disabled = dom.inputs.gameId.value.length === 0;
+                dom.displays.gameIdInput.addEventListener('input', () => {
+                    dom.buttons.joinGame.disabled = dom.displays.gameIdInput.value.length === 0;
                 });
                 
                 dom.buttons.startVsAi.addEventListener('click', () => {
@@ -3193,17 +3191,17 @@
                 });
 
                 // Écouteurs pour le nouvel écran de fin de partie
-                document.getElementById('game-over-lobby-button').addEventListener('click', () => {
+                dom.buttons.gameOverLobby.addEventListener('click', () => {
                     showScreen('multiplayerLobby'); // Retourne à l'écran du lobby
                     audioManager.playMusic('menu');
                 });
 
-                document.getElementById('game-over-quit-button').addEventListener('click', () => {
+                dom.buttons.gameOverQuit.addEventListener('click', () => {
                     showScreen('mainMenu'); // Retourne au menu principal
                     audioManager.playMusic('menu');
                 });
 
-                document.getElementById('game-over-spectate-button').addEventListener('click', () => {
+                dom.buttons.gameOverSpectate.addEventListener('click', () => {
                     const aliveBots = players.filter(p => p.hp > 0 && p.playerId !== 1);
                     if (aliveBots.length > 0) {
                         spectatedPlayer = aliveBots[0];
@@ -3224,9 +3222,9 @@
             }
 
             function updatePlayerList(players, map) {
-                const playerCount = document.getElementById('player-count');
-                const maxPlayers = document.getElementById('max-players');
-                const playerList = document.getElementById('player-list');
+                const playerCount = dom.inputs.playerCount;
+                const maxPlayers = dom.inputs.maxPlayers;
+                const playerList = dom.inputs.playerList;
                 
                 const mapMaxPlayers = mapData[map]?.maxPlayers || 4;
 
@@ -3243,7 +3241,7 @@
                 });
 
                 // Enable start button for host if enough players
-                const startButton = document.getElementById('start-multiplayer-game-button');
+                const startButton = dom.buttons.startMultiplayerGame;
                 const amIHost = players.find(p => p.name === currentPlayer.username)?.isHost;
                 
                 if (amIHost && players.length >= 2) { 
@@ -3330,49 +3328,43 @@
                 }
             
                 const humanPlayer = players[0];
-                const gameOverTitle = document.getElementById('game-over-title');
-                const survivorStats = document.getElementById('survivor-stats');
-                const restartButton = document.getElementById('restart-button');
-                const lobbyButton = document.getElementById('game-over-lobby-button');
-                const spectateButton = document.getElementById('game-over-spectate-button');
-                const quitButton = document.getElementById('game-over-quit-button');
-                
+
                 // Cache tous les boutons par défaut
-                restartButton.classList.add('hidden');
-                lobbyButton.classList.add('hidden');
-                spectateButton.classList.add('hidden');
-                quitButton.classList.add('hidden');
+                dom.buttons.restart.classList.add('hidden');
+                dom.buttons.gameOverLobby.classList.add('hidden');
+                dom.buttons.gameOverSpectate.classList.add('hidden');
+                dom.buttons.gameOverQuit.classList.add('hidden');
             
                 if (gameMode === 'survivor') {
                     globalWallet += humanPlayer.wallet;
                     saveGameState();
                     
-                    gameOverTitle.textContent = "LIQUIDATED!";
-                    survivorStats.style.display = 'block';
-                    document.getElementById('final-time').textContent = formatTime(timers.game);
-                    document.getElementById('final-level').textContent = humanPlayer.level;
-                    document.getElementById('final-gain').textContent = humanPlayer.wallet;
-                    restartButton.classList.remove('hidden');
+                    dom.displays.gameOverTitle.textContent = "LIQUIDATED!";
+                    dom.displays.survivorStats.style.display = 'block';
+                    dom.displays.finalTime.textContent = formatTime(timers.game);
+                    dom.displays.finalLevel.textContent = humanPlayer.level;
+                    dom.displays.finalGain.textContent = humanPlayer.wallet;
+                    dom.buttons.restart.classList.remove('hidden');
             
                 } else if (gameMode === 'armyAttack') {
-                    survivorStats.style.display = 'none'; // On cache les stats de survie
+                    dom.displays.survivorStats.style.display = 'none'; // On cache les stats de survie
 
                     if (winner && winner.playerId === 1) { // Le joueur a gagné
-                        gameOverTitle.textContent = "VICTOIRE !";
-                        lobbyButton.classList.remove('hidden');
-                        quitButton.classList.remove('hidden');
+                        dom.displays.gameOverTitle.textContent = "VICTOIRE !";
+                        dom.buttons.gameOverLobby.classList.remove('hidden');
+                        dom.buttons.gameOverQuit.classList.remove('hidden');
                     } else if (winner) { // Un bot a gagné
-                        gameOverTitle.textContent = `DÉFAITE ! (${winner.charType} a gagné)`;
-                        lobbyButton.classList.remove('hidden');
-                        quitButton.classList.remove('hidden');
+                        dom.displays.gameOverTitle.textContent = `DÉFAITE ! (${winner.charType} a gagné)`;
+                        dom.buttons.gameOverLobby.classList.remove('hidden');
+                        dom.buttons.gameOverQuit.classList.remove('hidden');
                     } else if (humanPlayer.hp <= 0) { // Le joueur a perdu (et il n'y a pas de gagnant)
-                        gameOverTitle.textContent = "VOUS AVEZ PERDU !";
-                        lobbyButton.classList.remove('hidden');
-                        quitButton.classList.remove('hidden');
+                        dom.displays.gameOverTitle.textContent = "VOUS AVEZ PERDU !";
+                        dom.buttons.gameOverLobby.classList.remove('hidden');
+                        dom.buttons.gameOverQuit.classList.remove('hidden');
 
                         const alivePlayers = players.filter(p => p.hp > 0).length;
                         if (alivePlayers >= 1) { // S'il reste au moins 1 autre joueur
-                            spectateButton.classList.remove('hidden');
+                            dom.buttons.gameOverSpectate.classList.remove('hidden');
                         }
                     }
                 }
@@ -3874,43 +3866,40 @@
             }
 
 
-            function setupCharacterSelection() {
-                const charSelectContainer = dom.screens.characterSelection.querySelector('.char-grid');
-                if (!charSelectContainer) return;
+            const handleCharacterClick = (event) => {
+                const btn = event.target.closest('.char-select-btn');
+                if (!btn) return;
 
-                // Cette fonction est maintenant appelée une seule fois pour attacher les écouteurs.
-                // Une autre fonction mettra à jour l'état visuel si nécessaire.
-                if (!charSelectContainer.dataset.initialized) {
-                    charSelectContainer.querySelectorAll('.char-select-btn').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            const charType = btn.dataset.char;
-                            const isUnlocked = unlockedCharacters.includes(charType);
+                const charType = btn.dataset.char;
+                const isUnlocked = unlockedCharacters.includes(charType);
 
-                            if (isUnlocked) {
-                                gameMode = 'survivor'; // Définir le mode de jeu ICI
-                                startGame(charType);
-                            } else {
-                                const cost = characterData[charType].cost;
-                                if (globalWallet >= cost) {
-                                    globalWallet -= cost;
-                                    unlockedCharacters.push(charType);
-                                    saveGameState();
-                                    updateWalletDisplay();
-                                    updateCharacterSelectionUI(); // Mettre à jour seulement l'UI
-                                } else {
-                                    createFloatingText("Fonds insuffisants!", window.innerWidth / 2, window.innerHeight / 2, 'orange', 2000);
-                                }
-                            }
-                        });
-                    });
-                    charSelectContainer.dataset.initialized = 'true';
+                if (isUnlocked) {
+                    gameMode = 'survivor';
+                    startGame(charType);
+                } else {
+                    const cost = characterData[charType].cost;
+                    if (globalWallet >= cost) {
+                        globalWallet -= cost;
+                        unlockedCharacters.push(charType);
+                        saveGameState();
+                        updateWalletDisplay();
+                        updateCharacterSelectionUI();
+                    } else {
+                        createFloatingText("Fonds insuffisants!", window.innerWidth / 2, window.innerHeight / 2, 'orange', 2000);
+                    }
                 }
-                // Mettre à jour l'UI à chaque affichage
+            };
+
+            function setupCharacterSelection() {
+                const charGrid = dom.screens.characterSelection.querySelector('.character-choices');
+                if (charGrid) {
+                    charGrid.style.display = 'grid'; // On s'assure que la grille est visible.
+                }
                 updateCharacterSelectionUI();
             }
 
             function updateCharacterSelectionUI() {
-                const charGrid = dom.screens.characterSelection.querySelector('.char-grid');
+                const charGrid = dom.screens.characterSelection.querySelector('.character-choices');
                 if (!charGrid) return;
 
                 charGrid.style.display = 'grid'; // Assurer que la grille est visible
