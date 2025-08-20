@@ -3354,21 +3354,24 @@
             
                 } else if (gameMode === 'armyAttack') {
                     survivorStats.style.display = 'none'; // On cache les stats de survie
-                    
-                    if (humanPlayer.hp <= 0) { // Le joueur a perdu
-                        gameOverTitle.textContent = "VOUS AVEZ PERDU !";
-                        lobbyButton.classList.remove('hidden');
-                        quitButton.classList.remove('hidden');
-            
-                        const alivePlayers = players.filter(p => p.hp > 0).length;
-                        if (alivePlayers >= 2) { // S'il reste au moins 2 autres joueurs
-                            spectateButton.classList.remove('hidden');
-                        }
-            
-                    } else if (winner && winner.playerId === 1) { // Le joueur a gagné
+
+                    if (winner && winner.playerId === 1) { // Le joueur a gagné
                         gameOverTitle.textContent = "VICTOIRE !";
                         lobbyButton.classList.remove('hidden');
                         quitButton.classList.remove('hidden');
+                    } else if (winner) { // Un bot a gagné
+                        gameOverTitle.textContent = `DÉFAITE ! (${winner.charType} a gagné)`;
+                        lobbyButton.classList.remove('hidden');
+                        quitButton.classList.remove('hidden');
+                    } else if (humanPlayer.hp <= 0) { // Le joueur a perdu (et il n'y a pas de gagnant)
+                        gameOverTitle.textContent = "VOUS AVEZ PERDU !";
+                        lobbyButton.classList.remove('hidden');
+                        quitButton.classList.remove('hidden');
+
+                        const alivePlayers = players.filter(p => p.hp > 0).length;
+                        if (alivePlayers >= 1) { // S'il reste au moins 1 autre joueur
+                            spectateButton.classList.remove('hidden');
+                        }
                     }
                 }
                 
