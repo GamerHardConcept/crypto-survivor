@@ -161,8 +161,6 @@
         .char-button strong { font-size: 0.8rem; }
         .char-button small { font-size: 0.6rem; opacity: 0.8; }
 
-        .ontop { z-index: 100; }
-
         /* --- Sélection de la Carte --- */
         .map-choices {
             display: flex;
@@ -3377,7 +3375,6 @@
                 dom.displays.passiveUpgrades.classList.add('hidden');
                 dom.displays.weaponUI.classList.add('hidden');
                 dom.armyPanel.classList.add('hidden');
-                dom.screens.gameOver.classList.add('ontop');
                 showScreen('gameOverScreen');
             }
 
@@ -3442,7 +3439,8 @@
                 }
             }
 
-            function gameLoop(timestamp) {
+                        function gameLoop(timestamp) {
+                console.log(`Game loop running. State: ${gameState}, Mode: ${gameMode}`);
                 if (!lastTime) lastTime = timestamp;
                 const dt = timestamp - lastTime;
                 lastTime = timestamp;
