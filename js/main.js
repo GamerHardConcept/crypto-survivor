@@ -217,7 +217,8 @@ function setupEventListeners() {
 
     // --- Boutons des Menus ---
     // Menu Principal
-    document.getElementById('start-game-button').addEventListener('click', () => showScreen('character-selection'));
+    // WS: Correction du nom de l'écran pour correspondre à l'ID HTML
+    document.getElementById('start-game-button').addEventListener('click', () => showScreen('character-selection-screen'));
     document.getElementById('shop-button').addEventListener('click', () => showScreen('shop'));
     document.getElementById('multiplayer-button').addEventListener('click', () => showScreen('multiplayer-mode'));
 
@@ -290,19 +291,19 @@ function setupEventListeners() {
     });
 
     socket.on('gameCreated', (game) => {
-        console.log('Partie créée:', game);
+        // console.log('Partie créée:', game);
         updateWaitingRoom(game);
         showScreen('waiting-room');
     });
 
     socket.on('gameJoined', (game) => {
-        console.log('Partie rejointe:', game);
+        // console.log('Partie rejointe:', game);
         updateWaitingRoom(game);
         showScreen('waiting-room');
     });
 
     socket.on('playerJoined', (game) => {
-        console.log('Un joueur a rejoint:', game);
+        // console.log('Un joueur a rejoint:', game);
         updateWaitingRoom(game);
     });
 

@@ -6,7 +6,6 @@ async function initializeAudio() {
     if (audioInitialized) return;
     try {
         await Tone.start();
-        console.log("Audio context started");
         audioInitialized = true;
         if (gameState.isMusicOn) {
             audioManager.playMusic('menu');

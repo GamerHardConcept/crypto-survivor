@@ -59,7 +59,6 @@ function showLevelUpOptions() {
         `;
         option.onclick = () => {
             // TODO: Appliquer l'amélioration
-            console.log('Amélioration choisie:', upgradeData.name);
             showScreen('game');
             gameState.isPaused = false;
             gameLoop(lastTime);
@@ -133,12 +132,12 @@ function populateCharacterSelection() {
         const isUnlocked = true; // saveData.unlockedCharacters.includes(charId);
 
         const charDiv = document.createElement('div');
-        charDiv.className = `character-choice ${isUnlocked ? '' : 'locked'}`;
+        // WS: Utilisation de la classe 'char-button' pour correspondre au CSS et simplification de la structure HTML.
+        charDiv.className = `char-button ${isUnlocked ? '' : 'locked'}`;
         charDiv.innerHTML = `
             <div class="character-icon" style="background-color: ${charData.color};"></div>
-            <h3>${charData.name}</h3>
-            <p>${charData.description}</p>
-            <div class="character-weapon">Arme: ${charData.baseWeapon}</div>
+            <strong>${charData.name}</strong>
+            <small>${charData.description}</small>
             ${!isUnlocked ? `<div class="lock-overlay">BLOQUÉ</div>` : ''}
         `;
         if (isUnlocked) {
