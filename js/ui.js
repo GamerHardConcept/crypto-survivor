@@ -1,16 +1,26 @@
 // WS: Fichier pour la gestion de l'interface utilisateur (UI)
 
 function showScreen(screenId) {
-    // WS: Cache tous les écrans en retirant la classe 'active'
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
+    const gameHud = document.getElementById('game-hud');
+    const isOverlay = ['level-up-screen', 'pause-screen', 'confirm-quit-screen', 'game-over-screen'].includes(screenId);
 
-    // WS: Affiche l'écran demandé en ajoutant la classe 'active'
-    const screenToShow = document.getElementById(screenId);
-    if (screenToShow) {
-        screenToShow.classList.add('active');
+    // Cache tous les écrans sauf si c'est une superposition
+    if (!isOverlay) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     }
+
+    // Gère l'affichage du HUD
+    if (screenId === 'game-hud' || isOverlay) {
+        if (gameHud) gameHud.classList.add('active');
+    } else {
+        if (gameHud) gameHud.classList.remove('active');
+    }
+
+    const screenElement = document.getElementById(screenId);
+    if (screenElement) {
+        screenElement.classList.add('active');
+    }
+
     gameState.currentScreen = screenId;
 }
 
@@ -28,42 +38,107 @@ function updateHUD() {
     document.getElementById('game-timer').textContent = `${Math.floor(gameState.gameTime / 60).toString().padStart(2, '0')}:${(Math.floor(gameState.gameTime) % 60).toString().padStart(2, '0')}`;
 }
 
+function getUpgradeOptions() {
+    const player = gameState.player;
+    let options = [];
+
+    // Options d'amélioration pour les armes et passifs existants
+    player.weapons.forEach(w => {
+        if (w.level < w.maxLevel) options.push({ type: 'upgrade', item: w });
+    });
+    Object.values(player.passiveUpgrades).forEach(p => {
+        if (p.level < p.maxLevel) options.push({ type: 'upgrade', item: p });
+    });
+
+    // Options pour de nouvelles armes si le joueur a moins de 6 armes
+    if (player.weapons.length < 6) {
+        const available = Object.values(weapons).filter(wData => !player.weapons.some(w => w.id === wData.id));
+        options.push(...available.map(wData => ({ type: 'new', item: wData })));
+    }
+
+    // Options pour de nouveaux passifs si le joueur a moins de 6 passifs
+    if (Object.keys(player.passiveUpgrades).length < 6) {
+        const available = Object.values(passiveUpgrades).filter(pData => !player.passiveUpgrades[pData.id]);
+        options.push(...available.map(pData => ({ type: 'new', item: pData })));
+    }
+
+    // Filtrer les options en double (ne devrait pas arriver avec cette logique, mais par sécurité)
+    options = options.filter((option, index, self) => 
+        index === self.findIndex((o) => (
+            o.item.id === option.item.id
+        ))
+    );
+
+    // Mélanger et sélectionner 3 ou 4 options
+    const shuffled = options.sort(() => 0.5 - Math.random());
+    let finalOptions = shuffled.slice(0, player.luck > 1.2 ? 4 : 3);
+
+    // Si aucune option, proposer de l'or ou un poulet
+    if (finalOptions.length === 0) {
+        finalOptions.push({ type: 'gold' });
+        finalOptions.push({ type: 'chicken' });
+    }
+
+    return finalOptions;
+}
+
 function showLevelUpOptions() {
-    showScreen('level-up');
+    showScreen('level-up-screen');
     gameState.isPaused = true;
     const optionsContainer = document.getElementById('level-up-options');
     optionsContainer.innerHTML = '';
 
-    // Logique de sélection des améliorations (simplifiée pour la démo)
-    const availableUpgrades = [...weapons, ...passiveUpgrades].filter(u => {
-        // Filtrer les améliorations déjà au max
-        return true; 
-    });
+    const upgradeOptions = getUpgradeOptions();
 
-    const chosenUpgrades = [];
-    while (chosenUpgrades.length < 3 && availableUpgrades.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availableUpgrades.length);
-        chosenUpgrades.push(availableUpgrades.splice(randomIndex, 1)[0]);
-    }
+    upgradeOptions.forEach(option => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'level-up-option';
 
-    chosenUpgrades.forEach(upgradeData => {
-        const option = document.createElement('div');
-        option.className = 'level-up-option';
-        const isWeapon = !!upgradeData.dps;
-        const level = 1; // Placeholder
+        let icon, name, levelText, description;
 
-        option.innerHTML = `
-            <div class="upgrade-icon">${upgradeData.icon || '✨'}</div>
-            <div class="upgrade-name">${upgradeData.name} <span class="level-tag">Niv. ${level}</span></div>
-            <div class="upgrade-desc">${upgradeData.description}</div>
+        switch (option.type) {
+            case 'upgrade':
+            case 'new':
+                const item = option.item;
+                const currentLevel = option.type === 'new' ? 0 : item.level;
+                const nextLevel = currentLevel + 1;
+                const isWeapon = !!item.dps;
+                
+                icon = item.icon;
+                name = item.name;
+                levelText = `Niv. ${nextLevel}`;
+                description = isWeapon ? item.description(nextLevel) : item.description;
+                break;
+            case 'gold':
+                icon = '💰';
+                name = 'Bourse de 25 Or';
+                levelText = 'Consommable';
+                description = 'Ajoute 25 pièces d\'or à votre pécule.';
+                break;
+            case 'chicken':
+                icon = '🍗';
+                name = 'Poulet Rôti';
+                levelText = 'Consommable';
+                description = 'Restaure 30% de vos points de vie maximum.';
+                break;
+        }
+
+        optionDiv.innerHTML = `
+            <div class="upgrade-icon">${icon}</div>
+            <div class="upgrade-info">
+                <div class="upgrade-name">${name} <span class="level-tag">${levelText}</span></div>
+                <div class="upgrade-desc">${description}</div>
+            </div>
         `;
-        option.onclick = () => {
-            // TODO: Appliquer l'amélioration
-            showScreen('game');
+
+        optionDiv.onclick = () => {
+            gameState.player.applyUpgrade(option);
             gameState.isPaused = false;
+            showScreen('game-hud');
             gameLoop(lastTime);
         };
-        optionsContainer.appendChild(option);
+
+        optionsContainer.appendChild(optionDiv);
     });
 }
 
@@ -126,35 +201,36 @@ function populateCharacterSelection() {
     const container = document.getElementById('character-choices-container');
     if (!container) return;
     container.innerHTML = '';
-    for (const charId in characters) {
-        const charData = characters[charId];
-        // Pour la démo, tous les personnages sont débloqués
-        const isUnlocked = true; // saveData.unlockedCharacters.includes(charId);
+
+    Object.values(characters).forEach(charData => {
+        const isUnlocked = saveData.unlockedCharacters.includes(charData.id);
 
         const charDiv = document.createElement('div');
         charDiv.className = 'char-button-container';
+
         const charButton = document.createElement('button');
         charButton.className = 'char-button';
-        if (!isUnlocked) {
-            charButton.classList.add('locked');
-        }
-
-        charButton.innerHTML = `
-            <div class="char-icon-container">
-                 <img src="${charData.icon}" class="char-icon" alt="${charData.name}">
-            </div>
-            <div class="char-name">${charData.name}</div>
-            <div class="char-unlock-cost">${isUnlocked ? 'Unlocked' : `Cost: ${charData.unlockCost} <img src="./assets/images/coin.png" class="coin-icon">`}</div>
-        `;
+        charButton.style.setProperty('--char-color', charData.color);
 
         if (isUnlocked) {
-            charButton.onclick = () => startGame(charData);
+            charButton.innerHTML = `
+                <div class="char-icon">${charData.iconHTML}</div>
+                <div class="char-name">${charData.name}</div>
+                <div class="char-sub-name">${charData.subName}</div>
+            `;
+            charButton.onclick = () => startGame(charData.id);
         } else {
+            charButton.classList.add('locked');
+            charButton.innerHTML = `
+                <div class="char-icon">?</div>
+                <div class="char-name">${charData.unlockCondition}</div>
+            `;
             charButton.disabled = true;
         }
+
         charDiv.appendChild(charButton);
         container.appendChild(charDiv);
-    }
+    });
 }
 
 function updateSpecialAbilityButton() {

@@ -248,7 +248,7 @@ function setupEventListeners() {
     // --- Boutons en jeu ---
     document.getElementById('pause-button').addEventListener('click', () => {
         gameState.isPaused = true;
-        showScreen('pause');
+        showScreen('pause-screen');
     });
     document.getElementById('special-ability-button').addEventListener('click', () => {
         if (gameState.player) {
@@ -260,24 +260,24 @@ function setupEventListeners() {
     // Pause
     document.getElementById('resume-button').addEventListener('click', () => {
         gameState.isPaused = false;
-        showScreen('game');
+        showScreen('game-hud');
         gameLoop(lastTime); // Reprendre la boucle
     });
-    document.getElementById('main-menu-from-pause-button').addEventListener('click', () => showScreen('confirm-quit'));
+    document.getElementById('main-menu-from-pause-button').addEventListener('click', () => showScreen('confirm-quit-screen'));
     
     // Confirmation Quitter
     document.getElementById('confirm-quit-yes-button').addEventListener('click', () => {
         resetGameState();
-        // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
         showScreen('main-menu-screen');
+        audioManager.playMusic('menu');
     });
-    document.getElementById('confirm-quit-no-button').addEventListener('click', () => showScreen('pause'));
+    document.getElementById('confirm-quit-no-button').addEventListener('click', () => showScreen('pause-screen'));
 
     // Game Over
     document.getElementById('restart-button').addEventListener('click', () => {
         resetGameState();
-        // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
         showScreen('main-menu-screen');
+        audioManager.playMusic('menu');
     });
 
     // Redimensionnement de la fenêtre
