@@ -57,9 +57,11 @@ class Player extends Entity {
         this.color = charData.color;
         
         // Ajouter l'arme de base
-        const baseWeapon = allUpgrades.find(u => u.constructor.name === charData.baseWeapon);
-        if (baseWeapon) {
-            this.addWeapon(Object.create(baseWeapon));
+        // Trouver la CLASSE de l'arme de base
+        const WeaponClass = allUpgrades.find(u => u.constructor.name === charData.baseWeapon)?.constructor;
+        if (WeaponClass) {
+            // Créer une NOUVELLE instance de cette arme avec le joueur comme propriétaire
+            this.addWeapon(new WeaponClass(this));
         }
 
         // Ajouter la capacité spéciale

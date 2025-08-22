@@ -2,55 +2,112 @@
 
 const characters = {
     'MVX': {
-        name: 'MVX Chad',
+        id: 'MVX',
+        name: 'MVX',
+        subName: 'Roquette HODL',
+        iconHTML: '<span class="char-icon-letter" style="color:#00f5d4;">X</span>',
         description: 'Un trader équilibré avec un pistolet FOMO.',
-        color: '#00f5d4',
-        hp: 100,
-        speed: 200,
-        damage: 1, // 100% base damage
-        baseWeapon: 'FomoGun',
-        special: {
-            name: 'Pump it!',
-            cooldown: 30,
-            activate: (player) => {
-                // Augmente temporairement la cadence de tir et la vitesse
-                createFloatingText('PUMP IT!', player.pos, 'gold', 2, 3);
-            }
-        }
+        hp: 100, speed: 200, damage: 1, baseWeapon: 'FomoGun',
+        unlockCost: 0,
+    },
+    'AVAX': {
+        id: 'AVAX',
+        name: 'AVAX',
+        subName: 'Avalanche',
+        iconHTML: '<span class="char-icon-letter" style="color:#e84142;">A</span>',
+        description: 'Lance des projectiles en cône.',
+        hp: 90, speed: 210, damage: 0.9, baseWeapon: 'ConeGun',
+        unlockCost: 1000,
     },
     'ETH': {
-        name: 'Ethereum Sage',
+        id: 'ETH',
+        name: 'ETH',
+        subName: 'Gas Burn',
+        iconHTML: '<span class="char-icon-letter" style="color:#627eea;">♦</span>',
         description: 'Lance des projectiles en spirale.',
-        color: '#627eea',
-        hp: 80,
-        speed: 220,
-        damage: 0.8,
-        baseWeapon: 'SpiralGun',
-        special: {
-            name: 'Merge',
-            cooldown: 45,
-            activate: (player) => {
-                // Crée une onde de choc qui repousse les ennemis
-                 createFloatingText('MERGE!', player.pos, 'white', 2, 3);
-            }
-        }
+        hp: 80, speed: 220, damage: 0.8, baseWeapon: 'SpiralGun',
+        unlockCost: 1000,
     },
-     'SOL': {
-        name: 'Solana Striker',
+    'SOL': {
+        id: 'SOL',
+        name: 'SOL',
+        subName: 'Network Haste',
+        iconHTML: '<span class="char-icon-letter" style="color:#9945FF;">S</span>',
         description: 'Rapide et mortel, utilise un rayon laser continu.',
-        color: '#9945FF',
-        hp: 70,
-        speed: 250,
-        damage: 1.2,
-        baseWeapon: 'LaserGun',
-        special: {
-            name: 'Network-wide',
-            cooldown: 40,
-            activate: (player) => {
-                // Devient invincible pour une courte durée
-                createFloatingText('INVINCIBLE!', player.pos, 'cyan', 2, 3);
-            }
-        }
+        hp: 70, speed: 250, damage: 1.2, baseWeapon: 'LaserGun',
+        unlockCost: 2000,
+    },
+    'AAVE': {
+        id: 'AAVE',
+        name: 'AAVE',
+        subName: 'Flash Loan',
+        iconHTML: '<img src="./assets/images/ghost.png" style="width:32px;height:32px;">',
+        description: 'Vole la vie des ennemis.',
+        hp: 120, speed: 180, damage: 0.7, baseWeapon: 'LifeStealAura',
+        unlockCost: 1500,
+    },
+    'BTC': {
+        id: 'BTC',
+        name: 'BTC',
+        subName: 'Digital Gold',
+        iconHTML: '<span class="char-icon-letter" style="color:#f7931a;">B</span>',
+        description: 'Solide et puissant, mais lent.',
+        hp: 150, speed: 170, damage: 1.3, baseWeapon: 'FomoGun',
+        unlockCost: 5000,
+    },
+    'GRT': {
+        id: 'GRT',
+        name: 'GRT',
+        subName: 'Indexing',
+        iconHTML: '<span class="char-icon-letter" style="color:#6747ed;">G</span>',
+        description: 'Lance des projectiles à tête chercheuse.',
+        hp: 85, speed: 210, damage: 1, baseWeapon: 'HomingMissileLauncher',
+        unlockCost: 2500,
+    },
+    'DOGE': {
+        id: 'DOGE',
+        name: 'DOGE',
+        subName: 'Much Wow',
+        iconHTML: '<span class="char-icon-letter" style="color:#c3a634;">D</span>',
+        description: 'Tire dans tous les sens.',
+        hp: 60, speed: 230, damage: 0.6, baseWeapon: 'WildShotgun',
+        unlockCost: 500,
+    },
+    'CRO': {
+        id: 'CRO',
+        name: 'CRO',
+        subName: 'Cronos Chain',
+        iconHTML: '<span class="char-icon-letter" style="color:#0e1a35;">C</span>',
+        description: 'Gagne en puissance avec le temps.',
+        hp: 90, speed: 200, damage: 0.8, baseWeapon: 'ScalingGun',
+        unlockCost: 1200,
+    },
+    'ZIL': {
+        id: 'ZIL',
+        name: 'ZIL',
+        subName: 'Sharding',
+        iconHTML: '<span class="char-icon-letter" style="color:#49c6ad;">Z</span>',
+        description: 'Tire plusieurs projectiles à la fois.',
+        hp: 75, speed: 220, damage: 0.7, baseWeapon: 'MultiShotgun',
+        unlockCost: 1800,
+    },
+    'BNB': {
+        id: 'BNB',
+        name: 'BNB',
+        subName: 'Smart Chain',
+        iconHTML: '<span class="char-icon-letter" style="color:#f0b90b;">N</span>',
+        description: 'Crée des explosions en chaîne.',
+        hp: 95, speed: 205, damage: 1.1, baseWeapon: 'ChainReactionGun',
+        unlockCost: 3000,
+    },
+    'HTM': {
+        id: 'HTM',
+        name: 'HTM',
+        subName: 'Liquid Stake',
+        iconHTML: '<span class="char-icon-letter" style="color:#ff5722;">H</span>',
+        description: 'Lance des flaques qui ralentissent et blessent.',
+        hp: 110, speed: 190, damage: 0.9, baseWeapon: 'AcidPoolLauncher',
+        unlockCost: 2200,
     }
 };
 

@@ -216,14 +216,15 @@ function populateCharacterSelection() {
             charButton.innerHTML = `
                 <div class="char-icon">${charData.iconHTML}</div>
                 <div class="char-name">${charData.name}</div>
-                <div class="char-sub-name">${charData.subName}</div>
+                <div class="char-sub-name">${charData.subName || ''}</div>
             `;
             charButton.onclick = () => startGame(charData.id);
         } else {
             charButton.classList.add('locked');
             charButton.innerHTML = `
                 <div class="char-icon">?</div>
-                <div class="char-name">${charData.unlockCondition}</div>
+                <div class="char-name">${charData.name}</div>
+                <div class="char-sub-name">${charData.unlockCondition || 'Bloqué'}</div>
             `;
             charButton.disabled = true;
         }
