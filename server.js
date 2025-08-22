@@ -27,7 +27,7 @@ app.use(express.static(__dirname));
 
 // Servez le fichier HTML principal
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Code Valie v30 grosse mise à jour v1.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Logique de connexion Socket.IO
