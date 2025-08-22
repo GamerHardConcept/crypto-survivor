@@ -138,7 +138,17 @@
         }
         .char-button.locked { border-color: #555; color: #555; cursor: not-allowed; }
         .char-button:not(.locked):hover { border-color: var(--primary-color); background-color: rgba(0, 245, 212, 0.1); }
-        .char-icon { font-family: 'Roboto Mono', monospace; font-size: 1.8rem; font-weight: bold; display: inline-block; }
+        .char-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.char-sub-name {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.char-icon { font-family: 'Roboto Mono', monospace; font-size: 1.8rem; font-weight: bold; display: inline-block; }
         .mvx-logo-select {
             transform: rotate(90deg);
         }
