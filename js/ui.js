@@ -1,10 +1,15 @@
 // WS: Fichier pour la gestion de l'interface utilisateur (UI)
 
 function showScreen(screenId) {
+    // WS: Cache tous les écrans
     document.querySelectorAll('.screen').forEach(screen => {
         screen.style.display = 'none';
     });
-    document.getElementById(screenId).style.display = 'flex';
+
+    // WS: Affiche l'écran demandé seulement s'il existe
+    if (screenId && document.getElementById(screenId)) {
+        document.getElementById(screenId).style.display = 'flex';
+    }
     gameState.currentScreen = screenId;
 }
 
