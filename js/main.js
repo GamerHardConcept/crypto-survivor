@@ -5,7 +5,8 @@ let animationFrameId;
 
 function initGame() {
     loadGameData();
-    showScreen('main-menu');
+    // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
+    showScreen('main-menu-screen');
     updateShop();
     populateCharacterSelection();
     setupEventListeners();
@@ -223,10 +224,12 @@ function setupEventListeners() {
     document.getElementById('multiplayer-button').addEventListener('click', () => showScreen('multiplayer-mode'));
 
     // Boutique
-    document.getElementById('back-to-menu-button').addEventListener('click', () => showScreen('main-menu'));
+    // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
+    document.getElementById('back-to-menu-button').addEventListener('click', () => showScreen('main-menu-screen'));
 
     // Sélection Personnage
-    document.getElementById('back-to-menu-from-char-select-button').addEventListener('click', () => showScreen('main-menu'));
+    // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
+    document.getElementById('back-to-menu-from-char-select-button').addEventListener('click', () => showScreen('main-menu-screen'));
 
     // Sélection Mode Multijoueur
     document.getElementById('army-attack-button').addEventListener('click', () => showScreen('multiplayer-lobby'));
@@ -258,14 +261,16 @@ function setupEventListeners() {
     // Confirmation Quitter
     document.getElementById('confirm-quit-yes-button').addEventListener('click', () => {
         resetGameState();
-        showScreen('main-menu');
+        // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
+        showScreen('main-menu-screen');
     });
     document.getElementById('confirm-quit-no-button').addEventListener('click', () => showScreen('pause'));
 
     // Game Over
     document.getElementById('restart-button').addEventListener('click', () => {
         resetGameState();
-        showScreen('main-menu');
+        // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
+        showScreen('main-menu-screen');
     });
 
     // Redimensionnement de la fenêtre
