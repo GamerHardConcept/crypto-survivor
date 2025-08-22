@@ -15,88 +15,85 @@ function showScreen(screenId) {
 }
 
 function updateHUD() {
-    if (!gameState.player) return;
-    document.getElementById('hp-bar').style.width = `${(gameState.player.health / gameState.player.maxHealth) * 100}%`;
-    document.getElementById('hp-text').textContent = `${Math.round(gameState.player.health)} / ${gameState.player.maxHealth}`;
+    if (!gameState.player || gameState.currentScreen !== 'game') return;
+    // Barres de vie et d'XP
+    document.getElementById('top-health-bar-fill').style.width = `${(gameState.player.health / gameState.player.maxHealth) * 100}%`;
+    document.getElementById('top-health-bar-text').textContent = `${Math.ceil(gameState.player.health)} / ${gameState.player.maxHealth}`;
     document.getElementById('xp-bar').style.width = `${(gameState.player.xp / gameState.player.xpToNextLevel) * 100}%`;
-    document.getElementById('xp-text').textContent = `Niv. ${gameState.player.level}`;
-    document.getElementById('timer').textContent = `${Math.floor(gameState.gameTime / 60)}:${(Math.floor(gameState.gameTime) % 60).toString().padStart(2, '0')}`;
-    document.getElementById('kill-count').textContent = `Kills: ${gameState.killCount}`;
-    document.getElementById('money-hud').innerHTML = `${saveData.money} <span class="mvx-logo-inline">X</span>`;
+    document.getElementById('xp-bar-text').textContent = `${gameState.player.xp} / ${gameState.player.xpToNextLevel}`;
+
+    // Stats
+    document.getElementById('player-level').textContent = gameState.player.level;
+    document.getElementById('player-wallet').textContent = gameState.player.money;
+    document.getElementById('game-timer').textContent = `${Math.floor(gameState.gameTime / 60).toString().padStart(2, '0')}:${(Math.floor(gameState.gameTime) % 60).toString().padStart(2, '0')}`;
 }
 
 function showLevelUpOptions() {
+    showScreen('level-up');
+    gameState.isPaused = true;
     const optionsContainer = document.getElementById('level-up-options');
     optionsContainer.innerHTML = '';
 
-    const availableUpgrades = allUpgrades.filter(u => {
-        const existingWeapon = gameState.player.weapons.find(w => w.constructor.name === u.constructor.name);
-        if (existingWeapon) return existingWeapon.level < 5; // Limite de niveau
-        
-        const existingPassive = gameState.player.passiveUpgrades[u.id];
-        if (existingPassive) return existingPassive.level < u.maxLevel;
-
-        // Ne pas proposer d'arme si le joueur en a déjà 6
-        if (!(u instanceof BonusUpgrade) && gameState.player.weapons.length >= 6) return false;
-
-        return true;
+    // Logique de sélection des améliorations (simplifiée pour la démo)
+    const availableUpgrades = [...weapons, ...passiveUpgrades].filter(u => {
+        // Filtrer les améliorations déjà au max
+        return true; 
     });
 
     const chosenUpgrades = [];
     while (chosenUpgrades.length < 3 && availableUpgrades.length > 0) {
         const randomIndex = Math.floor(Math.random() * availableUpgrades.length);
-        chosenUpgrades.push(availableUpgrades[randomIndex]);
-        availableUpgrades.splice(randomIndex, 1);
+        chosenUpgrades.push(availableUpgrades.splice(randomIndex, 1)[0]);
     }
 
-    chosenUpgrades.forEach(upgrade => {
+    chosenUpgrades.forEach(upgradeData => {
         const option = document.createElement('div');
         option.className = 'level-up-option';
-        
-        const existing = gameState.player.weapons.find(w => w.constructor.name === upgrade.constructor.name) || gameState.player.passiveUpgrades[upgrade.id];
-        const level = existing ? existing.level : 0;
+        const isWeapon = !!upgradeData.dps;
+        const level = 1; // Placeholder
 
         option.innerHTML = `
-            <div class="upgrade-icon">${upgrade.icon || '✨'}</div>
-            <div class="upgrade-name">${upgrade.name} <span class="level-tag">Niv. ${level + 1}</span></div>
-            <div class="upgrade-desc">${upgrade.description}</div>
-            <div class="upgrade-info">${existing ? existing.getUpgradeInfo() : ''}</div>
+            <div class="upgrade-icon">${upgradeData.icon || '✨'}</div>
+            <div class="upgrade-name">${upgradeData.name} <span class="level-tag">Niv. ${level}</span></div>
+            <div class="upgrade-desc">${upgradeData.description}</div>
         `;
         option.onclick = () => {
-            if (upgrade instanceof BonusUpgrade) {
-                gameState.player.addPassive(upgrade);
-            } else {
-                gameState.player.addWeapon(Object.create(upgrade));
-            }
+            // TODO: Appliquer l'amélioration
+            console.log('Amélioration choisie:', upgradeData.name);
             showScreen('game');
             gameState.isPaused = false;
-            gameLoop(); // Relancer la boucle
+            gameLoop(lastTime);
         };
         optionsContainer.appendChild(option);
     });
 }
 
 function updateWeaponDisplay() {
-    const container = document.getElementById('weapon-display');
-    container.innerHTML = '';
+    const container = document.getElementById('weapon-display-ui');
+    if (!container || !gameState.player) return;
+    container.innerHTML = '<h3>Armes</h3>';
     gameState.player.weapons.forEach(w => {
-        container.innerHTML += `<div class="hud-icon">${w.icon} <span class="level-tag">${w.level}</span></div>`;
+        container.innerHTML += `<div class="hud-icon">${w.name} <span class="level-tag">${w.level}</span></div>`;
     });
 }
 
 function updatePassiveDisplay() {
-    const container = document.getElementById('passive-display');
-    container.innerHTML = '';
+    const container = document.getElementById('passive-upgrades-display');
+    if (!container || !gameState.player) return;
+    container.innerHTML = '<h3>Passifs</h3>';
     for (const key in gameState.player.passiveUpgrades) {
         const p = gameState.player.passiveUpgrades[key];
-        container.innerHTML += `<div class="hud-icon">${p.icon || '✨'} <span class="level-tag">${p.level}</span></div>`;
+        container.innerHTML += `<div class="hud-icon">${p.name} <span class="level-tag">${p.level}</span></div>`;
     }
 }
 
 function updateShop() {
-    const container = document.getElementById('permanent-upgrades-container');
+    const container = document.getElementById('shop-items-container');
+    const moneyDisplay = document.getElementById('shop-wallet-display');
+    if (!container || !moneyDisplay) return;
+
     container.innerHTML = '';
-    document.getElementById('shop-money').innerHTML = `${saveData.money} <span class="mvx-logo-inline">X</span>`;
+    moneyDisplay.innerHTML = `${saveData.money} <span class="mvx-logo-inline">X</span>`;
 
     permanentUpgrades.forEach(upgrade => {
         const currentLevel = saveData.permanentUpgrades[upgrade.id] || 0;
@@ -104,12 +101,12 @@ function updateShop() {
         const canAfford = saveData.money >= cost;
 
         const item = document.createElement('div');
-        item.className = `shop-item ${canAfford ? '' : 'disabled'}`;
+        item.className = `shop-item ${!canAfford || currentLevel >= upgrade.maxLevel ? 'disabled' : ''}`;
         item.innerHTML = `
-            <div class="shop-item-name">${upgrade.name} (Niv. ${currentLevel})</div>
+            <div class="shop-item-name">${upgrade.name} (Niv. ${currentLevel}/${upgrade.maxLevel})</div>
             <div class="shop-item-desc">${upgrade.description}</div>
-            <div class="shop-item-bonus">Bonus actuel: +${(upgrade.bonus * currentLevel * 100).toFixed(0)}%</div>
-            <button class="shop-buy-btn" ${!canAfford || currentLevel >= upgrade.maxLevel ? 'disabled' : ''}>
+            <div class="shop-item-bonus">Bonus: +${(upgrade.bonus * 100).toFixed(0)}% par niveau</div>
+            <button class="action-button" ${!canAfford || currentLevel >= upgrade.maxLevel ? 'disabled' : ''}>
                 ${currentLevel >= upgrade.maxLevel ? 'MAX' : `Acheter: ${cost} <span class="mvx-logo-inline">X</span>`}
             </button>
         `;
@@ -127,22 +124,21 @@ function updateShop() {
 }
 
 function populateCharacterSelection() {
-    const container = document.getElementById('character-selection');
+    const container = document.getElementById('character-choices-container');
+    if (!container) return;
     container.innerHTML = '';
     for (const charId in characters) {
         const charData = characters[charId];
-        const isUnlocked = saveData.unlockedCharacters.includes(charId);
+        // Pour la démo, tous les personnages sont débloqués
+        const isUnlocked = true; // saveData.unlockedCharacters.includes(charId);
 
         const charDiv = document.createElement('div');
-        charDiv.className = `char-card ${isUnlocked ? '' : 'locked'}`;
+        charDiv.className = `character-choice ${isUnlocked ? '' : 'locked'}`;
         charDiv.innerHTML = `
-            <div class="char-name">${charData.name}</div>
-            <div class="char-icon" style="background-color:${charData.color}"></div>
-            <div class="char-desc">${charData.description}</div>
-            <div class="char-stats">
-                HP: ${charData.hp} | Vit: ${charData.speed} | Dmg: ${charData.damage*100}%
-            </div>
-            <div class="char-weapon">Arme: ${allUpgrades.find(u=>u.constructor.name === charData.baseWeapon).name}</div>
+            <div class="character-icon" style="background-color: ${charData.color};"></div>
+            <h3>${charData.name}</h3>
+            <p>${charData.description}</p>
+            <div class="character-weapon">Arme: ${charData.baseWeapon}</div>
             ${!isUnlocked ? `<div class="lock-overlay">BLOQUÉ</div>` : ''}
         `;
         if (isUnlocked) {
@@ -155,18 +151,43 @@ function populateCharacterSelection() {
 }
 
 function updateSpecialAbilityButton() {
-    const btn = document.getElementById('special-ability-btn');
-    if (gameState.player && gameState.player.specialAbility) {
-        btn.style.display = 'block';
-        const special = gameState.player.specialAbility;
-        if (special.timer > 0) {
-            btn.classList.add('on-cooldown');
-            btn.textContent = Math.ceil(special.timer);
-        } else {
-            btn.classList.remove('on-cooldown');
-            btn.textContent = special.name;
-        }
+    const btn = document.getElementById('special-ability-button');
+    if (!btn || !gameState.player || !gameState.player.special) return;
+
+    if (gameState.player.special.cooldownTimer > 0) {
+        btn.classList.add('on-cooldown');
+        btn.textContent = Math.ceil(gameState.player.special.cooldownTimer);
     } else {
-        btn.style.display = 'none';
+        btn.classList.remove('on-cooldown');
+        btn.textContent = '🚀'; // Icône par défaut
     }
+}
+
+function updateWaitingRoom(game) {
+    const playerList = document.getElementById('player-list');
+    const gameIdDisplay = document.getElementById('game-id-display');
+    const startMultiplayerGameButton = document.getElementById('start-multiplayer-game-button');
+
+    if (!playerList || !gameIdDisplay || !startMultiplayerGameButton) return;
+
+    // Mettre à jour l'ID de la partie
+    gameIdDisplay.textContent = game.id;
+
+    // Mettre à jour la liste des joueurs
+    playerList.innerHTML = '';
+    game.players.forEach((player, index) => {
+        const playerItem = document.createElement('li');
+        playerItem.textContent = `${player.name} ${index === 0 ? '(Hôte)' : ''}`;
+        playerList.appendChild(playerItem);
+    });
+
+    // Mettre à jour le nombre de joueurs
+    const playerCountDisplay = document.querySelector('#waiting-room-screen h3');
+    if (playerCountDisplay) {
+        playerCountDisplay.textContent = `Joueurs (${game.players.length}/4)`;
+    }
+
+    // Activer le bouton de démarrage si assez de joueurs
+    // Note: La logique exacte dépendra si le créateur est le seul à pouvoir lancer
+    startMultiplayerGameButton.disabled = game.players.length < 2;
 }

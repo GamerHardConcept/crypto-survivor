@@ -103,7 +103,7 @@ function updateAll(dt) {
     spawnEnemies(dt);
 
     // Mise à jour de la caméra
-    centerCameraOnPlayer(gameState.camera, gameState.player, canvas);
+    centerCameraOnPlayer();
 
     // Mise à jour de l'interface
     updateHUD();
@@ -215,31 +215,56 @@ function setupEventListeners() {
         if ((e.key === 'd' || e.key === 'ArrowRight') && gameState.player.input.x === 1) gameState.player.input.x = 0;
     });
 
-    // Boutons UI
-    document.getElementById('start-game-btn').addEventListener('click', () => { showScreen('character-select'); });
-    document.getElementById('shop-btn').addEventListener('click', () => { showScreen('shop'); });
-    document.getElementById('main-menu-btn-from-shop').addEventListener('click', () => { showScreen('main-menu'); });
-    document.getElementById('main-menu-btn-from-char-select').addEventListener('click', () => { showScreen('main-menu'); });
-    document.getElementById('retry-btn').addEventListener('click', () => { startGame(gameState.player.charId); });
-    document.getElementById('main-menu-from-gameover-btn').addEventListener('click', () => { showScreen('main-menu'); });
-    document.getElementById('pause-btn').addEventListener('click', () => {
+    // --- Boutons des Menus ---
+    // Menu Principal
+    document.getElementById('start-game-button').addEventListener('click', () => showScreen('character-selection'));
+    document.getElementById('shop-button').addEventListener('click', () => showScreen('shop'));
+    document.getElementById('multiplayer-button').addEventListener('click', () => showScreen('multiplayer-mode'));
+
+    // Boutique
+    document.getElementById('back-to-menu-button').addEventListener('click', () => showScreen('main-menu'));
+
+    // Sélection Personnage
+    document.getElementById('back-to-menu-from-char-select-button').addEventListener('click', () => showScreen('main-menu'));
+
+    // Sélection Mode Multijoueur
+    document.getElementById('army-attack-button').addEventListener('click', () => showScreen('multiplayer-lobby'));
+    document.getElementById('back-to-menu-from-mode-select-button').addEventListener('click', () => showScreen('main-menu'));
+
+    // Lobby Multijoueur
+    document.getElementById('back-to-menu-from-lobby-button').addEventListener('click', () => showScreen('multiplayer-mode'));
+
+    // --- Boutons en jeu ---
+    document.getElementById('pause-button').addEventListener('click', () => {
         gameState.isPaused = true;
-        showScreen('pause-menu');
+        showScreen('pause');
     });
-    document.getElementById('resume-btn').addEventListener('click', () => {
-        gameState.isPaused = false;
-        showScreen('game');
-        gameLoop();
-    });
-    document.getElementById('main-menu-from-pause-btn').addEventListener('click', () => {
-        resetGameState();
-        showScreen('main-menu');
-    });
-    
-    document.getElementById('special-ability-btn').addEventListener('click', () => {
+    document.getElementById('special-ability-button').addEventListener('click', () => {
         if (gameState.player) {
             gameState.player.activateSpecial();
         }
+    });
+
+    // --- Boutons des écrans modaux ---
+    // Pause
+    document.getElementById('resume-button').addEventListener('click', () => {
+        gameState.isPaused = false;
+        showScreen('game');
+        gameLoop(lastTime); // Reprendre la boucle
+    });
+    document.getElementById('main-menu-from-pause-button').addEventListener('click', () => showScreen('confirm-quit'));
+    
+    // Confirmation Quitter
+    document.getElementById('confirm-quit-yes-button').addEventListener('click', () => {
+        resetGameState();
+        showScreen('main-menu');
+    });
+    document.getElementById('confirm-quit-no-button').addEventListener('click', () => showScreen('pause'));
+
+    // Game Over
+    document.getElementById('restart-button').addEventListener('click', () => {
+        resetGameState();
+        showScreen('main-menu');
     });
 
     // Redimensionnement de la fenêtre
@@ -247,6 +272,43 @@ function setupEventListeners() {
     
     // Initialisation audio au premier clic
     document.body.addEventListener('click', initializeAudio, { once: true });
+
+    // --- Logique Multijoueur ---
+    const socket = io();
+
+    document.getElementById('create-game-button').addEventListener('click', () => {
+        const playerName = document.getElementById('player-name-input').value || 'Player';
+        socket.emit('createGame', { playerName });
+    });
+
+    document.getElementById('join-game-button').addEventListener('click', () => {
+        const playerName = document.getElementById('player-name-input').value || 'Player';
+        const gameId = document.getElementById('game-id-input').value;
+        if (gameId) {
+            socket.emit('joinGame', { playerName, gameId });
+        }
+    });
+
+    socket.on('gameCreated', (game) => {
+        console.log('Partie créée:', game);
+        updateWaitingRoom(game);
+        showScreen('waiting-room');
+    });
+
+    socket.on('gameJoined', (game) => {
+        console.log('Partie rejointe:', game);
+        updateWaitingRoom(game);
+        showScreen('waiting-room');
+    });
+
+    socket.on('playerJoined', (game) => {
+        console.log('Un joueur a rejoint:', game);
+        updateWaitingRoom(game);
+    });
+
+    socket.on('gameError', (message) => {
+        alert('Erreur: ' + message);
+    });
 }
 
 // Point d'entrée
