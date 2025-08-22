@@ -1,14 +1,15 @@
 // WS: Fichier pour la gestion de l'interface utilisateur (UI)
 
 function showScreen(screenId) {
-    // WS: Cache tous les écrans
+    // WS: Cache tous les écrans en retirant la classe 'active'
     document.querySelectorAll('.screen').forEach(screen => {
-        screen.style.display = 'none';
+        screen.classList.remove('active');
     });
 
-    // WS: Affiche l'écran demandé seulement s'il existe
-    if (screenId && document.getElementById(screenId)) {
-        document.getElementById(screenId).style.display = 'flex';
+    // WS: Affiche l'écran demandé en ajoutant la classe 'active'
+    const screenToShow = document.getElementById(screenId);
+    if (screenToShow) {
+        screenToShow.classList.add('active');
     }
     gameState.currentScreen = screenId;
 }
