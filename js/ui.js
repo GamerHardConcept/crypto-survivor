@@ -1,277 +1,320 @@
-// WS: Fichier pour la gestion de l'interface utilisateur (UI)
-
 function showScreen(screenId) {
-    const gameHud = document.getElementById('game-hud');
-    const isOverlay = ['level-up-screen', 'pause-screen', 'confirm-quit-screen', 'game-over-screen'].includes(screenId);
-
-    // Cache tous les écrans sauf si c'est une superposition
-    if (!isOverlay) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    Object.values(dom.screens).forEach(screen => screen.classList.remove('active'));
+    if (screenId && dom.screens[screenId]) {
+        dom.screens[screenId].classList.add('active');
     }
+}
 
-    // Gère l'affichage du HUD
-    if (screenId === 'game-hud' || isOverlay) {
-        if (gameHud) gameHud.classList.add('active');
+function updateHud() {
+    const humanPlayer = players[0];
+    if (!humanPlayer) {
+        dom.gameHud.classList.add('hidden');
+        return;
+    }
+    dom.gameHud.classList.remove('hidden');
+
+    dom.displays.playerLevel.textContent = humanPlayer.level;
+    dom.displays.playerWallet.textContent = humanPlayer.wallet;
+    dom.displays.topHealthBarFill.style.width = `${(humanPlayer.hp / humanPlayer.maxHp) * 100}%`;
+    dom.displays.topHealthBarText.textContent = `${Math.ceil(humanPlayer.hp)} / ${Math.ceil(humanPlayer.maxHp)}`;
+    dom.displays.gameTimer.textContent = formatTime(timers.game);
+    dom.displays.xpBar.style.width = `${Math.min(100, (humanPlayer.xp / humanPlayer.xpToNextLevel) * 100)}%`;
+    dom.displays.xpBarText.textContent = `${Math.floor(humanPlayer.xp)} / ${humanPlayer.xpToNextLevel}`;
+
+    if (gameMode === 'survivor' && entities.bonusUpgrades.length > 0) {
+        const bonus = entities.bonusUpgrades[0];
+        dom.displays.bonusTimer.textContent = `+1: ${Math.ceil(bonus.lifespan / 1000)}s`;
+        dom.displays.bonusTimer.classList.remove('hidden');
     } else {
-        if (gameHud) gameHud.classList.remove('active');
+        dom.displays.bonusTimer.classList.add('hidden');
     }
-
-    const screenElement = document.getElementById(screenId);
-    if (screenElement) {
-        screenElement.classList.add('active');
-    }
-
-    gameState.currentScreen = screenId;
 }
 
-function updateHUD() {
-    if (!gameState.player || gameState.currentScreen !== 'game') return;
-    // Barres de vie et d'XP
-    document.getElementById('top-health-bar-fill').style.width = `${(gameState.player.health / gameState.player.maxHealth) * 100}%`;
-    document.getElementById('top-health-bar-text').textContent = `${Math.ceil(gameState.player.health)} / ${gameState.player.maxHealth}`;
-    document.getElementById('xp-bar').style.width = `${(gameState.player.xp / gameState.player.xpToNextLevel) * 100}%`;
-    document.getElementById('xp-bar-text').textContent = `${gameState.player.xp} / ${gameState.player.xpToNextLevel}`;
+function displayShop() {
+    dom.displays.shopWallet.innerHTML = `${globalWallet.toLocaleString()} $<span class="mvx-logo-inline">X</span>`;
+    const container = dom.displays.shopItemsContainer;
+    container.innerHTML = '';
 
-    // Stats
-    document.getElementById('player-level').textContent = gameState.player.level;
-    document.getElementById('player-wallet').textContent = gameState.player.money;
-    document.getElementById('game-timer').textContent = `${Math.floor(gameState.gameTime / 60).toString().padStart(2, '0')}:${(Math.floor(gameState.gameTime) % 60).toString().padStart(2, '0')}`;
-}
+    Object.keys(shopData).forEach(key => {
+        const item = shopData[key];
+        const currentLevel = permanentUpgrades[key];
+        const maxLevel = item.levels.length;
+        
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'shop-item';
 
-function getUpgradeOptions() {
-    const player = gameState.player;
-    let options = [];
+        let actionHTML;
+        if (currentLevel >= maxLevel) {
+            actionHTML = `<div class="shop-item-action"><span>Niveau MAX</span></div>`;
+        } else {
+            const nextLevelInfo = item.levels[currentLevel];
+            const canAfford = globalWallet >= nextLevelInfo.cost;
+            actionHTML = `
+                <div class="shop-item-action">
+                    <button onclick="purchaseUpgrade('${key}')" ${canAfford ? '' : 'disabled'}>
+                        ${nextLevelInfo.cost.toLocaleString()} $<span class="mvx-logo-inline">X</span>
+                    </button>
+                </div>
+            `;
+        }
 
-    // Options d'amélioration pour les armes et passifs existants
-    player.weapons.forEach(w => {
-        if (w.level < w.maxLevel) options.push({ type: 'upgrade', item: w });
+        itemDiv.innerHTML = `
+            <div class="shop-item-info">
+                <strong>${item.icon} ${item.name}</strong>
+                <p>Niveau: ${currentLevel} / ${maxLevel}</p>
+                ${currentLevel < maxLevel ? `<p>Prochain: +${item.levels[currentLevel].bonus * 100}%</p>` : '<p>Bonus max atteint !</p>'}
+            </div>
+            ${actionHTML}
+        `;
+        container.appendChild(itemDiv);
     });
-    Object.values(player.passiveUpgrades).forEach(p => {
-        if (p.level < p.maxLevel) options.push({ type: 'upgrade', item: p });
-    });
-
-    // Options pour de nouvelles armes si le joueur a moins de 6 armes
-    if (player.weapons.length < 6) {
-        const available = Object.values(weapons).filter(wData => !player.weapons.some(w => w.id === wData.id));
-        options.push(...available.map(wData => ({ type: 'new', item: wData })));
-    }
-
-    // Options pour de nouveaux passifs si le joueur a moins de 6 passifs
-    if (Object.keys(player.passiveUpgrades).length < 6) {
-        const available = Object.values(passiveUpgrades).filter(pData => !player.passiveUpgrades[pData.id]);
-        options.push(...available.map(pData => ({ type: 'new', item: pData })));
-    }
-
-    // Filtrer les options en double (ne devrait pas arriver avec cette logique, mais par sécurité)
-    options = options.filter((option, index, self) => 
-        index === self.findIndex((o) => (
-            o.item.id === option.item.id
-        ))
-    );
-
-    // Mélanger et sélectionner 3 ou 4 options
-    const shuffled = options.sort(() => 0.5 - Math.random());
-    let finalOptions = shuffled.slice(0, player.luck > 1.2 ? 4 : 3);
-
-    // Si aucune option, proposer de l'or ou un poulet
-    if (finalOptions.length === 0) {
-        finalOptions.push({ type: 'gold' });
-        finalOptions.push({ type: 'chicken' });
-    }
-
-    return finalOptions;
 }
 
-function showLevelUpOptions() {
-    showScreen('level-up-screen');
-    gameState.isPaused = true;
-    const optionsContainer = document.getElementById('level-up-options');
+window.purchaseUpgrade = function(key) {
+    const item = shopData[key];
+    const currentLevel = permanentUpgrades[key];
+    const maxLevel = item.levels.length;
+
+    if (currentLevel < maxLevel) {
+        const nextLevelInfo = item.levels[currentLevel];
+        if (globalWallet >= nextLevelInfo.cost) {
+            audioManager.play('purchase');
+            globalWallet -= nextLevelInfo.cost;
+            permanentUpgrades[key]++;
+            saveGameState();
+            displayShop(); // Refresh the shop UI
+        }
+    }
+}
+
+
+function setupCharacterSelection() {
+    const container = dom.displays.charChoicesContainer;
+    container.innerHTML = '';
+    Object.keys(characterData).forEach(charName => {
+        const char = characterData[charName];
+        const button = document.createElement('button');
+        button.className = 'char-button';
+        const color = getComputedStyle(document.documentElement).getPropertyValue(char.colorVar);
+        const iconClass = charName === 'MVX' ? 'char-icon mvx-logo-select' : 'char-icon';
+        const iconSymbol = char.symbol;
+
+        button.innerHTML = `
+            <span class="${iconClass}" style="color:${color};">${iconSymbol}</span>
+            <strong>${charName}</strong>
+            <small>${char.specialName}</small>
+        `;
+        if (unlockedCharacters.includes(charName)) {
+            button.onclick = () => startGame(charName);
+        } else {
+            button.classList.add('locked');
+            button.title = "À débloquer en battant ce boss.";
+        }
+        container.appendChild(button);
+    });
+}
+
+function applyUpgrade(option) {
+    const humanPlayer = players[0];
+    if (option.type === 'upgradeWeapon') {
+        option.weapon.upgrade();
+    } else if (option.type === 'newWeapon') {
+        humanPlayer.weapons.push(weaponList[option.weaponKey].init(humanPlayer));
+    } else if (option.type === 'passive') {
+        passiveUpgrades[option.key].apply(humanPlayer, option.bonus);
+        humanPlayer.acquiredPassives.push({ key: option.key, level: option.level, bonus: option.bonus });
+    }
+}
+
+function displayLevelUpOptions() {
+    const humanPlayer = players[0];
+    const optionsContainer = dom.displays.levelUpOptions;
     optionsContainer.innerHTML = '';
+    dom.buttons.confirmUpgrade.classList.add('hidden');
+    selectedUpgrades = [];
+    
+    // --- Logique de génération des options (commune aux deux cas) ---
+    const weaponUpgradeOptions = humanPlayer.weapons
+        .filter(w => w.level < w.maxLevel)
+        .map(w => ({ type: 'upgradeWeapon', weapon: w, name: weaponList[w.key].name, text: w.getUpgradeDescription(), level: w.level + 1 }));
 
-    const upgradeOptions = getUpgradeOptions();
+    const newWeaponOptions = Object.keys(weaponList)
+        .filter(key => !humanPlayer.weapons.some(w => w.key === key))
+        .map(key => ({ type: 'newWeapon', weaponKey: key, name: weaponList[key].name, text: weaponList[key].description, level: 1 }));
 
-    upgradeOptions.forEach(option => {
+    const passivePool = [];
+    Object.keys(passiveUpgrades).forEach(key => {
+        const upgradeInfo = passiveUpgrades[key];
+        upgradeInfo.levels.forEach(levelInfo => {
+            const option = {
+                type: 'passive',
+                key: key,
+                ...levelInfo,
+                name: `${upgradeInfo.name} (Niv. ${levelInfo.level})`,
+                text: `Ajoute un bonus de +${(levelInfo.bonus * 100).toFixed(0)}%`
+            };
+            for (let i = 0; i < levelInfo.weight; i++) {
+                passivePool.push(option);
+            }
+        });
+    });
+
+    let availableOptions = [...weaponUpgradeOptions, ...newWeaponOptions];
+    if(passivePool.length > 0) {
+        for (let i = passivePool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [passivePool[i], passivePool[j]] = [passivePool[j], passivePool[i]];
+        }
+        const uniquePassiveOptions = [];
+        for(const option of passivePool) {
+            if(!uniquePassiveOptions.some(o => o.key === option.key && o.level === option.level)) {
+                uniquePassiveOptions.push(option);
+            }
+            if(uniquePassiveOptions.length >= 4) break; // On en prend un peu plus pour assurer 3 uniques
+        }
+        availableOptions.push(...uniquePassiveOptions);
+    }
+
+    availableOptions.sort(() => 0.5 - Math.random());
+    const choiceCount = humanPlayer.level >= 40 ? 5 : 4;
+    const chosenOptions = availableOptions.slice(0, choiceCount);
+    
+    // --- Logique de Bonus de Boss ---
+    if (humanPlayer.isBonusLevelUp) {
+        dom.displays.levelUpTitle.textContent = "BOSS VAINCU - BONUS !";
+        dom.displays.levelUpSubtitle.textContent = `Vous obtenez les ${chosenOptions.length} améliorations suivantes gratuitement !`;
+
+        if (chosenOptions.length === 0) {
+            optionsContainer.innerHTML = `<p>Toutes les améliorations sont au maximum ! +500 $<span class="mvx-logo-inline">X</span> en compensation !</p>`;
+            humanPlayer.wallet += 500;
+        } else {
+            chosenOptions.forEach(opt => {
+                applyUpgrade(opt);
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'level-up-option disabled'; // Grisé car déjà appliqué
+                optionDiv.dataset.level = Math.min(opt.level, 5);
+                optionDiv.innerHTML = `<strong>${opt.name}</strong><p>${opt.text}</p>`;
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        const continueButton = document.createElement('button');
+        continueButton.className = 'action-button';
+        continueButton.textContent = 'Continuer';
+        continueButton.style.marginTop = '20px';
+        continueButton.onclick = () => {
+            updateAllUI();
+            showScreen(null);
+            gameState = 'running';
+        };
+        optionsContainer.appendChild(continueButton);
+
+        humanPlayer.isBonusLevelUp = false; // Réinitialiser le flag
+        showScreen('levelUp');
+        return;
+    }
+    
+    // --- Logique normale de Level Up ---
+    if (humanPlayer.extraUpgradeCharges > 0) {
+        humanPlayer.upgradesToPick = 2;
+        humanPlayer.extraUpgradeCharges--;
+        dom.displays.levelUpSubtitle.textContent = `Vous pouvez prendre DEUX améliorations :`;
+    } else {
+        humanPlayer.upgradesToPick = 1;
+        dom.displays.levelUpSubtitle.textContent = `Choisissez UNE seule amélioration :`;
+    }
+
+    if (chosenOptions.length === 0) {
+        createFloatingText("Maxed Out! +100$", humanPlayer.x, humanPlayer.y, 'gold');
+        humanPlayer.wallet += 100;
+        gameState = 'running';
+        return;
+    }
+
+    chosenOptions.forEach(opt => {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'level-up-option';
-
-        let icon, name, levelText, description;
-
-        switch (option.type) {
-            case 'upgrade':
-            case 'new':
-                const item = option.item;
-                const currentLevel = option.type === 'new' ? 0 : item.level;
-                const nextLevel = currentLevel + 1;
-                const isWeapon = !!item.dps;
-                
-                icon = item.icon;
-                name = item.name;
-                levelText = `Niv. ${nextLevel}`;
-                description = isWeapon ? item.description(nextLevel) : item.description;
-                break;
-            case 'gold':
-                icon = '💰';
-                name = 'Bourse de 25 Or';
-                levelText = 'Consommable';
-                description = 'Ajoute 25 pièces d\'or à votre pécule.';
-                break;
-            case 'chicken':
-                icon = '🍗';
-                name = 'Poulet Rôti';
-                levelText = 'Consommable';
-                description = 'Restaure 30% de vos points de vie maximum.';
-                break;
-        }
-
-        optionDiv.innerHTML = `
-            <div class="upgrade-icon">${icon}</div>
-            <div class="upgrade-info">
-                <div class="upgrade-name">${name} <span class="level-tag">${levelText}</span></div>
-                <div class="upgrade-desc">${description}</div>
-            </div>
-        `;
-
-        optionDiv.onclick = () => {
-            gameState.player.applyUpgrade(option);
-            gameState.isPaused = false;
-            showScreen('game-hud');
-            gameLoop(lastTime);
-        };
-
+        optionDiv.dataset.level = Math.min(opt.level, 5);
+        optionDiv.innerHTML = `<strong>${opt.name}</strong><p>${opt.text}</p>`;
+        optionDiv.onclick = () => selectLevelUpOption(opt, optionDiv);
         optionsContainer.appendChild(optionDiv);
     });
+
+    showScreen('levelUp');
 }
 
-function updateWeaponDisplay() {
-    const container = document.getElementById('weapon-display-ui');
-    if (!container || !gameState.player) return;
-    container.innerHTML = '<h3>Armes</h3>';
-    gameState.player.weapons.forEach(w => {
-        container.innerHTML += `<div class="hud-icon">${w.name} <span class="level-tag">${w.level}</span></div>`;
-    });
-}
-
-function updatePassiveDisplay() {
-    const container = document.getElementById('passive-upgrades-display');
-    if (!container || !gameState.player) return;
-    container.innerHTML = '<h3>Passifs</h3>';
-    for (const key in gameState.player.passiveUpgrades) {
-        const p = gameState.player.passiveUpgrades[key];
-        container.innerHTML += `<div class="hud-icon">${p.name} <span class="level-tag">${p.level}</span></div>`;
-    }
-}
-
-function updateShop() {
-    const container = document.getElementById('shop-items-container');
-    const moneyDisplay = document.getElementById('shop-wallet-display');
-    if (!container || !moneyDisplay) return;
-
-    container.innerHTML = '';
-    moneyDisplay.innerHTML = `${saveData.money} <span class="mvx-logo-inline">X</span>`;
-
-    permanentUpgrades.forEach(upgrade => {
-        const currentLevel = saveData.permanentUpgrades[upgrade.id] || 0;
-        const cost = upgrade.cost(currentLevel);
-        const canAfford = saveData.money >= cost;
-
-        const item = document.createElement('div');
-        item.className = `shop-item ${!canAfford || currentLevel >= upgrade.maxLevel ? 'disabled' : ''}`;
-        item.innerHTML = `
-            <div class="shop-item-name">${upgrade.name} (Niv. ${currentLevel}/${upgrade.maxLevel})</div>
-            <div class="shop-item-desc">${upgrade.description}</div>
-            <div class="shop-item-bonus">Bonus: +${(upgrade.bonus * 100).toFixed(0)}% par niveau</div>
-            <button class="action-button" ${!canAfford || currentLevel >= upgrade.maxLevel ? 'disabled' : ''}>
-                ${currentLevel >= upgrade.maxLevel ? 'MAX' : `Acheter: ${cost} <span class="mvx-logo-inline">X</span>`}
-            </button>
-        `;
-
-        if (canAfford && currentLevel < upgrade.maxLevel) {
-            item.querySelector('button').onclick = () => {
-                saveData.money -= cost;
-                saveData.permanentUpgrades[upgrade.id] = currentLevel + 1;
-                saveGameData();
-                updateShop();
-            };
-        }
-        container.appendChild(item);
-    });
-}
-
-function populateCharacterSelection() {
-    const container = document.getElementById('character-choices-container');
-    if (!container) return;
-    container.innerHTML = '';
-
-    Object.values(characters).forEach(charData => {
-        const isUnlocked = saveData.unlockedCharacters.includes(charData.id);
-
-        const charDiv = document.createElement('div');
-        charDiv.className = 'char-button-container';
-
-        const charButton = document.createElement('button');
-        charButton.className = 'char-button';
-        charButton.style.setProperty('--char-color', charData.color);
-
-        if (isUnlocked) {
-            charButton.innerHTML = `
-                <div class="char-icon">${charData.iconHTML}</div>
-                <div class="char-name">${charData.name}</div>
-                <div class="char-sub-name">${charData.subName || ''}</div>
-            `;
-            charButton.onclick = () => startGame(charData.id);
-        } else {
-            charButton.classList.add('locked');
-            charButton.innerHTML = `
-                <div class="char-icon">?</div>
-                <div class="char-name">${charData.name}</div>
-                <div class="char-sub-name">${charData.unlockCondition || 'Bloqué'}</div>
-            `;
-            charButton.disabled = true;
-        }
-
-        charDiv.appendChild(charButton);
-        container.appendChild(charDiv);
-    });
-}
-
-function updateSpecialAbilityButton() {
-    const btn = document.getElementById('special-ability-button');
-    if (!btn || !gameState.player || !gameState.player.special) return;
-
-    if (gameState.player.special.cooldownTimer > 0) {
-        btn.classList.add('on-cooldown');
-        btn.textContent = Math.ceil(gameState.player.special.cooldownTimer);
+function selectLevelUpOption(option, optionDiv) {
+    const humanPlayer = players[0];
+    if (selectedUpgrades.includes(option)) {
+        // Deselect
+        selectedUpgrades = selectedUpgrades.filter(item => item !== option);
+        optionDiv.classList.remove('selected');
     } else {
-        btn.classList.remove('on-cooldown');
-        btn.textContent = '🚀'; // Icône par défaut
+        // Select
+        if (selectedUpgrades.length < humanPlayer.upgradesToPick) {
+            selectedUpgrades.push(option);
+            optionDiv.classList.add('selected');
+        }
+    }
+
+    if (selectedUpgrades.length === humanPlayer.upgradesToPick) {
+        dom.buttons.confirmUpgrade.classList.remove('hidden');
+    } else {
+        dom.buttons.confirmUpgrade.classList.add('hidden');
     }
 }
 
-function updateWaitingRoom(game) {
-    const playerList = document.getElementById('player-list');
-    const gameIdDisplay = document.getElementById('game-id-display');
-    const startMultiplayerGameButton = document.getElementById('start-multiplayer-game-button');
+function updatePassiveUpgradesDisplay() {
+     const humanPlayer = players[0];
+     if (!humanPlayer) return;
+     dom.displays.passiveUpgrades.innerHTML = '';
 
-    if (!playerList || !gameIdDisplay || !startMultiplayerGameButton) return;
+    const passiveDisplayData = {
+        damage: { value: humanPlayer.globalDamageMultiplier, icon: passiveUpgrades.damage.icon, name: "Puissance de Feu" },
+        range: { value: humanPlayer.projectileLifespanBonus, icon: passiveUpgrades.range.icon, name: "Long HODL" },
+        xpGain: { value: humanPlayer.xpGainBonus, icon: passiveUpgrades.xpGain.icon, name: "Airdrop d'XP" }
+    };
 
-    // Mettre à jour l'ID de la partie
-    gameIdDisplay.textContent = game.id;
+    Object.keys(passiveDisplayData).forEach(key => {
+        const data = passiveDisplayData[key];
+        const totalBonus = data.value;
+        const baseValue = 1.0;
 
-    // Mettre à jour la liste des joueurs
-    playerList.innerHTML = '';
-    game.players.forEach((player, index) => {
-        const playerItem = document.createElement('li');
-        playerItem.textContent = `${player.name} ${index === 0 ? '(Hôte)' : ''}`;
-        playerList.appendChild(playerItem);
+        if (Math.abs(totalBonus - baseValue) > 0.001) {
+            const percentage = `+${Math.round((totalBonus - 1) * 100)}%`;
+            
+            const div = document.createElement('div');
+            div.className = 'passive-upgrade-icon';
+            div.innerHTML = `${data.icon} ${percentage}`;
+            div.title = `${data.name} (${percentage})`;
+            dom.displays.passiveUpgrades.appendChild(div);
+        }
     });
+}
 
-    // Mettre à jour le nombre de joueurs
-    const playerCountDisplay = document.querySelector('#waiting-room-screen h3');
-    if (playerCountDisplay) {
-        playerCountDisplay.textContent = `Joueurs (${game.players.length}/4)`;
-    }
+function updateWeaponUI() {
+    const humanPlayer = players[0];
+    if (!humanPlayer) return;
+    dom.displays.weaponUI.innerHTML = '';
+    humanPlayer.weapons.forEach(w => {
+        const weaponInfo = weaponList[w.key];
+        const icon = weaponInfo ? weaponInfo.icon : '?';
+        const div = document.createElement('div');
+        div.className = 'weapon-icon';
+        div.style.color = `var(--level-${Math.min(w.level, 5)}-color)`;
+        div.innerHTML = `<span>${icon}</span> <span>${w.level}</span>`;
+        div.title = `${weaponInfo.name} Niv. ${w.level}`;
+        dom.displays.weaponUI.appendChild(div);
+    });
+}
 
-    // Activer le bouton de démarrage si assez de joueurs
-    // Note: La logique exacte dépendra si le créateur est le seul à pouvoir lancer
-    startMultiplayerGameButton.disabled = game.players.length < 2;
+function formatTime(s) {
+    const minutes = Math.floor(s / 60).toString().padStart(2, '0');
+    const seconds = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+}
+
+function createFloatingText(text, x, y, color) {
+    const colorValue = color.startsWith('var') ? getComputedStyle(document.documentElement).getPropertyValue(color.replace(/var\(|\)/g, '')) : color;
+    entities.floatingTexts.push(new FloatingText(text, x, y, colorValue));
 }
