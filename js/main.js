@@ -27,11 +27,12 @@ function startGame(charId) {
         }
     }
 
-    showScreen('game');
+    showScreen('game-hud');
+    // WS: Lancement de la musique du jeu
+    audioManager.playMusic('game');
     gameState.isGameRunning = true;
     gameState.gameTime = 0;
     lastTime = 0;
-    audioManager.playMusic('game');
     gameLoop(0);
 }
 
@@ -220,23 +221,29 @@ function setupEventListeners() {
     // Menu Principal
     // WS: Correction du nom de l'écran pour correspondre à l'ID HTML
     document.getElementById('start-game-button').addEventListener('click', () => showScreen('character-selection-screen'));
-    document.getElementById('shop-button').addEventListener('click', () => showScreen('shop'));
-    document.getElementById('multiplayer-button').addEventListener('click', () => showScreen('multiplayer-mode'));
+     document.getElementById('shop-button').addEventListener('click', () => showScreen('shop-screen'));
+    document.getElementById('multiplayer-button').addEventListener('click', () => showScreen('multiplayer-mode-screen'));
 
     // Boutique
     // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
-    document.getElementById('back-to-menu-button').addEventListener('click', () => showScreen('main-menu-screen'));
+    document.getElementById('back-to-menu-button').addEventListener('click', () => {
+        showScreen('main-menu-screen');
+        audioManager.playMusic('menu');
+    });
 
     // Sélection Personnage
     // WS: Correction de l'ID pour correspondre à l'HTML ('main-menu-screen')
-    document.getElementById('back-to-menu-from-char-select-button').addEventListener('click', () => showScreen('main-menu-screen'));
+    document.getElementById('back-to-menu-from-char-select-button').addEventListener('click', () => {
+        showScreen('main-menu-screen');
+        audioManager.playMusic('menu');
+    });
 
     // Sélection Mode Multijoueur
-    document.getElementById('army-attack-button').addEventListener('click', () => showScreen('multiplayer-lobby'));
-    document.getElementById('back-to-menu-from-mode-select-button').addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('army-attack-button').addEventListener('click', () => showScreen('multiplayer-lobby-screen'));
+    document.getElementById('back-to-menu-from-mode-select-button').addEventListener('click', () => showScreen('main-menu-screen'));
 
     // Lobby Multijoueur
-    document.getElementById('back-to-menu-from-lobby-button').addEventListener('click', () => showScreen('multiplayer-mode'));
+    document.getElementById('back-to-menu-from-lobby-button').addEventListener('click', () => showScreen('multiplayer-mode-screen'));
 
     // --- Boutons en jeu ---
     document.getElementById('pause-button').addEventListener('click', () => {

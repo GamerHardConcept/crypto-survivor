@@ -132,19 +132,27 @@ function populateCharacterSelection() {
         const isUnlocked = true; // saveData.unlockedCharacters.includes(charId);
 
         const charDiv = document.createElement('div');
-        // WS: Utilisation de la classe 'char-button' pour correspondre au CSS et simplification de la structure HTML.
-        charDiv.className = `char-button ${isUnlocked ? '' : 'locked'}`;
-        charDiv.innerHTML = `
-            <div class="character-icon" style="background-color: ${charData.color};"></div>
-            <strong>${charData.name}</strong>
-            <small>${charData.description}</small>
-            ${!isUnlocked ? `<div class="lock-overlay">BLOQUÉ</div>` : ''}
-        `;
-        if (isUnlocked) {
-             charDiv.onclick = () => {
-                startGame(charId);
-            };
+        charDiv.className = 'char-button-container';
+        const charButton = document.createElement('button');
+        charButton.className = 'char-button';
+        if (!isUnlocked) {
+            charButton.classList.add('locked');
         }
+
+        charButton.innerHTML = `
+            <div class="char-icon-container">
+                 <img src="${charData.icon}" class="char-icon" alt="${charData.name}">
+            </div>
+            <div class="char-name">${charData.name}</div>
+            <div class="char-unlock-cost">${isUnlocked ? 'Unlocked' : `Cost: ${charData.unlockCost} <img src="./assets/images/coin.png" class="coin-icon">`}</div>
+        `;
+
+        if (isUnlocked) {
+            charButton.onclick = () => startGame(charData);
+        } else {
+            charButton.disabled = true;
+        }
+        charDiv.appendChild(charButton);
         container.appendChild(charDiv);
     }
 }

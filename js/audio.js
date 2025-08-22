@@ -5,11 +5,16 @@ let audioInitialized = false;
 async function initializeAudio() {
     if (audioInitialized) return;
     try {
-        await Tone.start();
-        audioInitialized = true;
-        if (gameState.isMusicOn) {
-            audioManager.playMusic('menu');
-        }
+        Tone.start().then(() => {
+            console.log("Audio context started");
+            // WS: Lancement de la musique du menu après initialisation
+            if (gameState.isMusicOn) {
+                audioManager.playMusic('menu');
+            }
+            audioInitialized = true;
+        }).catch(e => {
+            console.error("Could not start audio context", e);
+        });
     } catch (e) {
         console.error("Could not start audio context: ", e);
     }
