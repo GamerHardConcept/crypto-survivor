@@ -34,3 +34,41 @@ function loadGameData() {
         saveGameData();
     }
 }
+// --- Ponts & synchro globals <-> saveData ---
+
+// crée les globals s'ils n'existent pas
+window.globalWallet        = window.globalWallet        ?? 0;
+window.permanentUpgrades   = window.permanentUpgrades   || {};
+window.unlockedCharacters  = window.unlockedCharacters  || ['MVX'];
+
+// push des globals vers saveData
+function syncGlobalsToSave() {
+  saveData.money               = Number(window.globalWallet) || 0;
+  saveData.permanentUpgrades   = { ...saveData.permanentUpgrades, ...window.permanentUpgrades };
+  saveData.unlockedCharacters  = Array.isArray(window.unlockedCharacters)
+    ? [...new Set(window.unlockedCharacters)]
+    : ['MVX'];
+}
+
+// pull de saveData vers globals
+function syncSaveToGlobals() {
+  window.globalWallet       = Number(saveData.money) || 0;
+  window.permanentUpgrades  = { ...window.permanentUpgrades, ...saveData.permanentUpgrades };
+  window.unlockedCharacters = Array.isArray(saveData.unlockedCharacters) && saveData.unlockedCharacters.length
+    ? saveData.unlockedCharacters
+    : ['MVX'];
+}
+
+// expose les noms attendus par le reste du code
+window.loadGameState = window.loadGameState || function () {
+  loadGameData();      // -> remplit saveData depuis localStorage
+  syncSaveToGlobals(); // -> met à jour globalWallet / permanentUpgrades / unlockedCharacters
+};
+
+window.saveGameState = window.saveGameState || function () {
+  syncGlobalsToSave(); // -> copie les globals courants dans saveData
+  saveGameData();      // -> persiste dans localStorage
+};
+
+// chargement au démarrage (facultatif ici, utile si appelé tôt)
+try { window.loadGameState(); } catch (e) { console.warn('loadGameState init', e); }
