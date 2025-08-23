@@ -246,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastTime = performance.now();
                 gameLoop();
             }
+            window.startGame = startGame;
 
             // Initialisation
             loadGameState();
