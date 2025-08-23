@@ -318,3 +318,54 @@ function createFloatingText(text, x, y, color) {
     const colorValue = color.startsWith('var') ? getComputedStyle(document.documentElement).getPropertyValue(color.replace(/var\(|\)/g, '')) : color;
     entities.floatingTexts.push(new FloatingText(text, x, y, colorValue));
 }
+// ui.js — initUI minimal + navigation d’écrans
+
+window.dom = window.dom || { screens:{}, containers:{}, displays:{}, buttons:{} };
+
+// Utilitaires écran si absents
+window.showScreen = window.showScreen || function (id) {
+  Object.values(dom.screens).forEach(s => s.classList.remove('active'));
+  if (id && dom.screens[id]) dom.screens[id].classList.add('active');
+};
+window.hideAllScreens = window.hideAllScreens || function(){
+  Object.values(dom.screens).forEach(s => s.classList.remove('active'));
+};
+window.showMainMenu = window.showMainMenu || function(){
+  showScreen('main-menu-screen');
+};
+
+// (facultatif si main.js l’appelle)
+window.updateGameUI = window.updateGameUI || function(){ /* no-op pour l’instant */ };
+
+window.initUI = window.initUI || function () {
+  // Cache des écrans
+  dom.screens = {};
+  document.querySelectorAll('.screen').forEach(s => dom.screens[s.id] = s);
+
+  // Références utiles
+  dom.displays.charChoicesContainer = document.getElementById('character-choices-container');
+
+  // Boutons
+  const startBtn       = document.getElementById('start-game-button');
+  const backFromChar   = document.getElementById('back-to-menu-from-char-select-button');
+  const shopBtn        = document.getElementById('shop-button');
+  const backFromShop   = document.getElementById('back-to-menu-button');
+
+  // Brancher les clics
+  startBtn?.addEventListener('click', () => {
+    // si ta fonction existe, on génère les cartes
+    if (typeof setupCharacterSelection === 'function') {
+      setupCharacterSelection();
+    }
+    showScreen('character-selection-screen');
+  });
+
+  backFromChar?.addEventListener('click', () => showScreen('main-menu-screen'));
+
+  shopBtn?.addEventListener('click', () => {
+    if (typeof displayShop === 'function') displayShop();
+    showScreen('shop-screen');
+  });
+
+  backFromShop?.addEventListener('click', () => showScreen('main-menu-screen'));
+};
