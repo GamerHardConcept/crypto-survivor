@@ -2,8 +2,12 @@
    ui.js — contrôles UI & écrans
    ========================= */
 
-// -- Espace global DOM (cache de références)
-window.dom = window.dom || { screens: {}, containers: {}, displays: {}, buttons: {} };
+// Espace global DOM (cache de références)
+window.dom = window.dom || {};
+dom.screens    = dom.screens    || {};
+dom.containers = dom.containers || {};
+dom.displays   = dom.displays   || {};
+dom.buttons    = dom.buttons    || {};
 
 /* ---------- Outils d’écrans ---------- */
 
@@ -30,13 +34,13 @@ function updateHud() {
   }
   dom.gameHud?.classList?.remove('hidden');
 
-  if (dom.displays.playerLevel)         dom.displays.playerLevel.textContent = humanPlayer.level;
-  if (dom.displays.playerWallet)        dom.displays.playerWallet.textContent = humanPlayer.wallet;
-  if (dom.displays.topHealthBarFill)    dom.displays.topHealthBarFill.style.width = `${(humanPlayer.hp / humanPlayer.maxHp) * 100}%`;
-  if (dom.displays.topHealthBarText)    dom.displays.topHealthBarText.textContent = `${Math.ceil(humanPlayer.hp)} / ${Math.ceil(humanPlayer.maxHp)}`;
-  if (dom.displays.gameTimer)           dom.displays.gameTimer.textContent = formatTime(window.timers?.game ?? 0);
-  if (dom.displays.xpBar)               dom.displays.xpBar.style.width = `${Math.min(100, (humanPlayer.xp / humanPlayer.xpToNextLevel) * 100)}%`;
-  if (dom.displays.xpBarText)           dom.displays.xpBarText.textContent = `${Math.floor(humanPlayer.xp)} / ${humanPlayer.xpToNextLevel}`;
+  dom.displays.playerLevel && (dom.displays.playerLevel.textContent = humanPlayer.level);
+  dom.displays.playerWallet && (dom.displays.playerWallet.textContent = humanPlayer.wallet);
+  dom.displays.topHealthBarFill && (dom.displays.topHealthBarFill.style.width = `${(humanPlayer.hp / humanPlayer.maxHp) * 100}%`);
+  dom.displays.topHealthBarText && (dom.displays.topHealthBarText.textContent = `${Math.ceil(humanPlayer.hp)} / ${Math.ceil(humanPlayer.maxHp)}`);
+  dom.displays.gameTimer && (dom.displays.gameTimer.textContent = formatTime(window.timers?.game ?? 0));
+  dom.displays.xpBar && (dom.displays.xpBar.style.width = `${Math.min(100, (humanPlayer.xp / humanPlayer.xpToNextLevel) * 100)}%`);
+  dom.displays.xpBarText && (dom.displays.xpBarText.textContent = `${Math.floor(humanPlayer.xp)} / ${humanPlayer.xpToNextLevel}`);
 
   // Harmonisé avec main.js -> 'survival'
   if (window.gameMode === 'survival' && window.entities?.bonusUpgrades?.length > 0) {
@@ -158,7 +162,7 @@ function setupCharacterSelection() {
   });
 }
 
-/* ---------- Level up (laisse ta logique) ---------- */
+/* ---------- Level up (inchangé, sécurisés) ---------- */
 
 function applyUpgrade(option) {
   const humanPlayer = window.players?.[0];
@@ -230,8 +234,8 @@ function displayLevelUpOptions() {
 
   // Bonus de boss
   if (humanPlayer.isBonusLevelUp) {
-    if (dom.displays.levelUpTitle)    dom.displays.levelUpTitle.textContent = "BOSS VAINCU - BONUS !";
-    if (dom.displays.levelUpSubtitle) dom.displays.levelUpSubtitle.textContent = `Vous obtenez les ${chosenOptions.length} améliorations suivantes gratuitement !`;
+    dom.displays.levelUpTitle && (dom.displays.levelUpTitle.textContent = "BOSS VAINCU - BONUS !");
+    dom.displays.levelUpSubtitle && (dom.displays.levelUpSubtitle.textContent = `Vous obtenez les ${chosenOptions.length} améliorations suivantes gratuitement !`);
 
     if (chosenOptions.length === 0) {
       optionsContainer.innerHTML = `<p>Toutes les améliorations sont au maximum ! +500 $<span class="mvx-logo-inline">X</span> en compensation !</p>`;
@@ -267,10 +271,10 @@ function displayLevelUpOptions() {
   if (humanPlayer.extraUpgradeCharges > 0) {
     humanPlayer.upgradesToPick = 2;
     humanPlayer.extraUpgradeCharges--;
-    if (dom.displays.levelUpSubtitle) dom.displays.levelUpSubtitle.textContent = `Vous pouvez prendre DEUX améliorations :`;
+    dom.displays.levelUpSubtitle && (dom.displays.levelUpSubtitle.textContent = `Vous pouvez prendre DEUX améliorations :`);
   } else {
     humanPlayer.upgradesToPick = 1;
-    if (dom.displays.levelUpSubtitle) dom.displays.levelUpSubtitle.textContent = `Choisissez UNE seule amélioration :`;
+    dom.displays.levelUpSubtitle && (dom.displays.levelUpSubtitle.textContent = `Choisissez UNE seule amélioration :`);
   }
 
   if (chosenOptions.length === 0) {
@@ -333,7 +337,6 @@ function createFloatingText(text, x, y, color) {
 /* ---------- Initialisation UI ---------- */
 
 window.updateGameUI = window.updateGameUI || function () {
-  // point d’entrée si tu veux rafraîchir plusieurs panneaux d’un coup
   updateHud();
 };
 
@@ -364,13 +367,14 @@ window.initUI = window.initUI || function () {
   dom.displays.passiveUpgrades      = document.getElementById('passive-upgrades-display');
   dom.displays.weaponUI             = document.getElementById('weapon-display-ui');
 
-  // Conteneurs (utilisé dans main.js)
+  // Conteneur utilisé par main.js (safe fallback)
+  dom.containers = dom.containers || {};
   dom.containers.gameUi             = document.getElementById('game-hud') || document.body;
 
   // Boutons utiles
   dom.buttons.confirmUpgrade        = document.getElementById('confirm-upgrade-button');
 
-  // Brancher les boutons de navigation de base
+  // Brancher les boutons de navigation
   const startBtn       = document.getElementById('start-game-button');
   const backFromChar   = document.getElementById('back-to-menu-from-char-select-button');
   const shopBtn        = document.getElementById('shop-button');

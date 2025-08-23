@@ -8,7 +8,7 @@ const TOWER_WAVE_INTERVAL = 8000; // intervalle entre vagues (ms)
 
 // --- ÉTAT DU JEU ---
 let gameState = 'mainMenu';
-let gameMode = 'survivor'; // 'survivor' ou 'armyAttack'
+let gameMode = 'survival'; // 'survivor' ou 'armyAttack'
 let players = []; // Gère tous les joueurs (humain + bots)
 let animationFrameId;
 let camera = { x: 0, y: 0 };
