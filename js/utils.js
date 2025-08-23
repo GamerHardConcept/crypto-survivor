@@ -115,4 +115,29 @@ window.resetGameState = window.resetGameState || function () {
     if (dom?.displays?.weaponUI) dom.displays.weaponUI.innerHTML = '';
     if (typeof updateGameUI === 'function') updateGameUI();
   };
+  // --- Calcule les bonus permanents achetés au shop ---
+window.getPermanentBonuses = window.getPermanentBonuses || function () {
+    const pu = window.permanentUpgrades || {};
+    const sd = window.shopData || {};
+  
+    // additionne les bonus des niveaux déjà achetés
+    function totalBonus(key) {
+      const lvl = pu[key] || 0;
+      const levels = (sd[key]?.levels) || [];
+      let sum = 0;
+      for (let i = 0; i < Math.min(lvl, levels.length); i++) {
+        sum += levels[i].bonus;
+      }
+      return sum;
+    }
+  
+    return {
+      // mapping vers les noms attendus par Player (entities.js)
+      damage:      totalBonus('perm_damage') || 0, // +x (ex: 0.16 -> +16%)
+      health:      totalBonus('perm_hp')     || 0,
+      xpGain:      totalBonus('perm_luck')   || 0, // on mappe "chance" à un bonus XP global
+      attackSpeed: totalBonus('perm_speed')  || 0,
+    };
+  };
+  
   
