@@ -255,18 +255,87 @@ document.addEventListener('DOMContentLoaded', () => {
             showMainMenu();
             audioManager.playMusic('menu');
         });
-        // utils.js — stub d'inputs clavier (WASD / flèches / espace)
-window.input = window.input || { keys: new Set() };
-
-window.initInput = window.initInput || function () {
-  const down = (e) => input.keys.add(e.key);
-  const up   = (e) => input.keys.delete(e.key);
-
-  window.addEventListener('keydown', down);
-  window.addEventListener('keyup', up);
-
-  // (optionnel) empêcher le scroll avec certaines touches :
-  // window.addEventListener('keydown', (e) => {
-  //   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  // }, { passive:false });
-};
+        // === INPUT MANAGER (clavier + joystick tactile) ===
+window.inputManager = window.inputManager || {
+    keys: { up:false, down:false, left:false, right:false },
+  
+    handleKey(key, isDown) {
+      switch (key.toLowerCase()) {
+        case 'arrowup': case 'z': case 'w': this.keys.up = isDown; break;
+        case 'arrowdown': case 's':        this.keys.down = isDown; break;
+        case 'arrowleft': case 'q': case 'a': this.keys.left = isDown; break;
+        case 'arrowright': case 'd':       this.keys.right = isDown; break;
+        default: break;
+      }
+    },
+  
+    // Joystick virtuel attendu par entities.js (inputX / inputY)
+    joystick: {
+      container: null,
+      handle: null,
+      active: false, touchId: null, radius: 60,
+      inputX: 0, inputY: 0, centerX: 0, centerY: 0,
+  
+      _setEls(container, handle) {
+        this.container = container;
+        this.handle = handle;
+      },
+      start(e) {
+        e.preventDefault();
+        if (!this.container || !this.handle) return;
+        if (this.touchId !== null) return;
+        const t = e.changedTouches[0];
+        this.touchId = t.identifier;
+        this.active = true;
+        this.container.style.display = 'block';
+        this.centerX = t.clientX; this.centerY = t.clientY;
+        this.container.style.left = `${this.centerX - this.radius}px`;
+        this.container.style.top  = `${this.centerY - this.radius}px`;
+      },
+      move(e) {
+        e.preventDefault();
+        if (!this.active) return;
+        const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.touchId);
+        if (!t) return;
+        const dx = t.clientX - this.centerX;
+        const dy = t.clientY - this.centerY;
+        const dist = Math.hypot(dx, dy);
+        const ang = Math.atan2(dy, dx);
+        const clamped = Math.min(dist, this.radius);
+        this.inputX = Math.cos(ang) * (clamped / this.radius);
+        this.inputY = Math.sin(ang) * (clamped / this.radius);
+        this.handle.style.transform =
+          `translate(-50%, -50%) translate(${this.inputX * this.radius}px, ${this.inputY * this.radius}px)`;
+      },
+      end(e) {
+        if (Array.from(e.changedTouches).some(tt => tt.identifier === this.touchId)) {
+          this.active = false; this.touchId = null;
+          this.inputX = 0; this.inputY = 0;
+          if (this.handle) this.handle.style.transform = 'translate(-50%, -50%)';
+          if (this.container) this.container.style.display = 'none';
+        }
+      }
+    }
+  };
+  
+  // Initialise les listeners clavier + tactile
+  window.initInput = window.initInput || function initInput() {
+    // clavier
+    window.addEventListener('keydown', (e) => window.inputManager.handleKey(e.key, true));
+    window.addEventListener('keyup',   (e) => window.inputManager.handleKey(e.key, false));
+  
+    // joystick (si présent dans le DOM)
+    const jc = document.getElementById('joystick-container');
+    const jh = document.getElementById('joystick-handle');
+    if (jc && jh) {
+      window.inputManager.joystick._setEls(jc, jh);
+      const js = window.inputManager.joystick;
+      const opts = { passive: false };
+      const canvas = document.getElementById('game-canvas') || document.body;
+      canvas.addEventListener('touchstart', (e) => js.start(e), opts);
+      canvas.addEventListener('touchmove',  (e) => js.move(e),  opts);
+      canvas.addEventListener('touchend',   (e) => js.end(e));
+      canvas.addEventListener('touchcancel',(e) => js.end(e));
+    }
+  };
+  

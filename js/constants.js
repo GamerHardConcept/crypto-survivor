@@ -206,3 +206,14 @@ let multiplayerUpgrades = {
         bonus: 0.10 // -10% cooldown par niveau
     }
 };
+// Tailles & règles de base
+window.WORLD_WIDTH  = 5000;
+window.WORLD_HEIGHT = 5000;
+
+window.ENEMY_BASE_SPAWN_RATE = 2000;  // ms
+window.MAGNET_SPAWN_RATE     = 25000; // ms
+window.HEALTH_SPAWN_RATE     = 20000; // ms
+window.TOWER_WAVE_INTERVAL   = 8000;  // ms
+
+// Progression des niveaux d’armes (6 paliers 0→5)
+window.progression = [1, 1.25, 1.5, 2.0, 3.0, 5.0];

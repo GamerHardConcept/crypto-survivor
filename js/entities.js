@@ -70,13 +70,22 @@ class Player extends Entity {
     }
 
     update(dt) {
-        // Mouvement du joueur humain
-        const moveX = (inputManager.keys.left ? -1 : 0) + (inputManager.keys.right ? 1 : 0);
-        const moveY = (inputManager.keys.up ? -1 : 0) + (inputManager.keys.down ? 1 : 0);
-        const keyboardMove = new Vector(moveX, moveY).normalize();
-        const joystickMove = new Vector(inputManager.joystick.inputX, inputManager.joystick.inputY);
-        
-        let finalMove = (joystickMove.magnitude() > 0) ? joystickMove : keyboardMove;
+        // --- Lecture des entrées en mode tolérant ---
+        const im   = window.inputManager || {};
+        const keys = im.keys || {};
+        const joy  = im.joystick ? im.joystick : { inputX: 0, inputY: 0 };
+
+        // clavier (WASD / flèches)
+        const moveX = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+        const moveY = (keys.up   ? -1 : 0) + (keys.down  ? 1 : 0);
+        const keyboardMove  = new Vector(moveX, moveY).normalize();
+
+        // joystick virtuel (mobile)
+        const joystickMove  = new Vector(joy.inputX || 0, joy.inputY || 0);
+
+        // priorité au joystick s'il bouge, sinon clavier
+        const utiliseJoystick = Math.abs(joystickMove.x) + Math.abs(joystickMove.y) > 0.01;
+        const finalMove = utiliseJoystick ? joystickMove : keyboardMove;
 
         this.x += finalMove.x * this.speed * this.speedMultiplier;
         this.y += finalMove.y * this.speed * this.speedMultiplier;
@@ -295,7 +304,6 @@ class BotPlayer extends Player {
             this.purchaseTimer = 10000 + Math.random() * 5000; // Reset timer
         }
 
-
         // Limites du monde (clamp position to be safe)
         const bounds = getQuadrantBoundaries(this.playerId);
         this.x = Math.max(bounds.minX + this.radius, Math.min(bounds.maxX - this.radius, this.x));
@@ -469,7 +477,6 @@ class MiniBoss extends Enemy {
 
         ctx.restore();
     }
-
 
     takeDamage(amount) {
         this.hp -= amount;
