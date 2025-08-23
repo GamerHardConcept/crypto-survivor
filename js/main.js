@@ -2,8 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
-    
-            
+         
             // --- Fonctions utilitaires ---
 
             function getQuadrantBoundaries(quadrantId) {
@@ -255,3 +254,18 @@ document.addEventListener('DOMContentLoaded', () => {
             showMainMenu();
             audioManager.playMusic('menu');
         });
+        // utils.js — stub d'inputs clavier (WASD / flèches / espace)
+window.input = window.input || { keys: new Set() };
+
+window.initInput = window.initInput || function () {
+  const down = (e) => input.keys.add(e.key);
+  const up   = (e) => input.keys.delete(e.key);
+
+  window.addEventListener('keydown', down);
+  window.addEventListener('keyup', up);
+
+  // (optionnel) empêcher le scroll avec certaines touches :
+  // window.addEventListener('keydown', (e) => {
+  //   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  // }, { passive:false });
+};
