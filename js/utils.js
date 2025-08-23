@@ -139,5 +139,45 @@ window.getPermanentBonuses = window.getPermanentBonuses || function () {
       attackSpeed: totalBonus('perm_speed')  || 0,
     };
   };
+  // --- Gestion clavier minimale pour le joueur ---
+window.inputManager = window.inputManager || {
+    keys: new Set(),
+    isDown(key) {
+      // accepte maj/min et alias
+      return this.keys.has(key) ||
+             this.keys.has(key.toLowerCase()) ||
+             this.keys.has(key.toUpperCase());
+    },
+    getAxis() {
+      let x = 0, y = 0;
+      if (this.isDown('ArrowLeft') || this.isDown('a')) x -= 1;
+      if (this.isDown('ArrowRight')|| this.isDown('d')) x += 1;
+      if (this.isDown('ArrowUp')   || this.isDown('w')) y -= 1;
+      if (this.isDown('ArrowDown') || this.isDown('s')) y += 1;
+      const m = Math.hypot(x, y);
+      if (m > 0) { x /= m; y /= m; } // normalise diagonales
+      return { x, y };
+    }
+  };
+  
+  window.initInput = window.initInput || function () {
+    const im = window.inputManager;
+    const down = (e) => im.keys.add(e.key);
+    const up   = (e) => im.keys.delete(e.key);
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+  
+    // (optionnel) empêcher le scroll avec flèches/espace :
+    // window.addEventListener('keydown', (e) => {
+    //   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    // }, { passive:false });
+  };
+  // Wrapper compat: createFloatingText(text, x, y, color)
+window.createFloatingText = window.createFloatingText || function (text, x, y, color) {
+    const colorValue = String(color).startsWith('var')
+      ? getComputedStyle(document.documentElement).getPropertyValue(color.replace(/var\(|\)/g, ''))
+      : color;
+    window.entities?.floatingTexts?.push(new FloatingText(text, { x, y }, colorValue, /*size*/undefined, /*duration*/undefined));
+  };
   
   
