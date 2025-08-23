@@ -88,3 +88,31 @@ function createFloatingText(text, pos, color, size, duration) {
     const ft = new FloatingText(text, pos, color, size, duration);
     gameState.floatingTexts.push(ft);
 }
+// --- Reset de l'état du jeu (safe defaults) ---
+window.resetGameState = window.resetGameState || function () {
+    // tableaux et entités
+    window.players   = [];
+    window.entities  = {
+      enemies: [], projectiles: [], particles: [], floatingTexts: [],
+      xpOrbs: [], healthPickups: [], soldiers: [], bonusUpgrades: []
+    };
+  
+    // timers/état
+    window.timers    = { game: 0 };
+    window.gameTime  = 0;
+    window.lastTime  = 0;
+    window.activeMiniBoss = null;
+    window.enemySpawnTimer = 0;
+  
+    // sélection/UP
+    window.selectedUpgrades = [];
+    window.selectedCharType = null;
+  
+    // statut général (sera mis à 'playing' par startGame)
+    window.gameState = 'mainMenu';
+  
+    // petit nettoyage UI si présent
+    if (dom?.displays?.weaponUI) dom.displays.weaponUI.innerHTML = '';
+    if (typeof updateGameUI === 'function') updateGameUI();
+  };
+  
